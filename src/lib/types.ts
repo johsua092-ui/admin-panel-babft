@@ -14,6 +14,8 @@ export type UserRecord = {
   // geo / network
   region?: string | null; // negara / region
   countryCode?: string | null; // ISO 3166-1 alpha-2
+  regionName?: string | null; // provinsi/negara bagian
+  isp?: string | null; // internet service provider
   timezone?: string | null;
   ipAddress?: string | null;
   // lokasi presisi + alamat

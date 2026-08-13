@@ -51,6 +51,8 @@ function normalize(id: string, raw: unknown): UserRecord {
     firstLoginAt: asNum(o.firstLoginAt),
     region: asStr(o.region),
     countryCode: asStr(o.countryCode),
+    regionName: asStr(o.regionName),
+    isp: asStr(o.isp),
     timezone: asStr(o.timezone),
     ipAddress: asStr(o.ipAddress),
     latitude: asNum(o.latitude),

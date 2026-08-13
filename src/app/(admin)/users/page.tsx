@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import {
   MapPin, Clock3, Wifi, ShieldAlert, Search, ChevronUp, ChevronDown,
   Circle, Monitor, Smartphone, Tablet, MonitorSmartphone, Navigation,
-  Home, Cpu, Fingerprint, Languages,
+  Home, Cpu, Fingerprint, Languages, Trash2,
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { Badge, Card } from "@/components/ui";
@@ -27,6 +27,24 @@ export default function UsersPage() {
   const [sortKey, setSortKey] = useState<SortKey>("lastLoginAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  async function removeUser(id: string) {
+    if (!confirm("Hapus user ini dari daftar?")) return;
+    setDeletingId(id);
+    try {
+      const r = await fetch(`/api/users/${encodeURIComponent(id)}`, { method: "DELETE" });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        alert("Gagal menghapus: " + (j.error || r.status));
+      }
+      // biarkan polling berikutnya merefresh daftar
+    } catch (e) {
+      alert("Gagal menghapus: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -110,11 +128,12 @@ export default function UsersPage() {
                   </button>
                 </th>
                 <th>VPN</th>
+                <th className="text-right">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="py-8 text-center text-fg-dim">Tidak ada data.</td></tr>
+                <tr><td colSpan={7} className="py-8 text-center text-fg-dim">Tidak ada data.</td></tr>
               )}
               {filtered.map((u) => (
                 <UserRow
@@ -122,6 +141,8 @@ export default function UsersPage() {
                   u={u}
                   expanded={expanded === u.id}
                   onToggle={() => setExpanded((e) => (e === u.id ? null : u.id))}
+                  onDelete={() => removeUser(u.id)}
+                  deleting={deletingId === u.id}
                 />
               ))}
             </tbody>
@@ -132,7 +153,13 @@ export default function UsersPage() {
   );
 }
 
-function UserRow({ u, expanded, onToggle }: { u: UserRecord; expanded: boolean; onToggle: () => void }) {
+function UserRow({ u, expanded, onToggle, onDelete, deleting }: {
+  u: UserRecord;
+  expanded: boolean;
+  onToggle: () => void;
+  onDelete: () => void;
+  deleting: boolean;
+}) {
   const DeviceIcon = deviceIcon(u.deviceType);
   return (
     <>
@@ -199,11 +226,22 @@ function UserRow({ u, expanded, onToggle }: { u: UserRecord; expanded: boolean; 
             <Badge tone="default">—</Badge>
           )}
         </td>
+        <td className="text-right">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            disabled={deleting}
+            title="Hapus user"
+            className="inline-flex items-center gap-1 rounded border border-bg-border px-2 py-1 text-2xs text-fg-muted transition-colors hover:border-danger hover:text-danger disabled:opacity-50"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {deleting ? "…" : "Hapus"}
+          </button>
+        </td>
       </tr>
 
       {expanded && (
         <tr>
-          <td colSpan={6} className="bg-bg-base">
+          <td colSpan={7} className="bg-bg-base">
             <UserDetail u={u} />
           </td>
         </tr>
