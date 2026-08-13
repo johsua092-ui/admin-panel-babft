@@ -70,8 +70,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const email = (u.email ?? "").toLowerCase();
     const uid = u.uid;
 
+    // --- Sumber 1 (INSTAN): env fallback NEXT_PUBLIC_ADMIN_EMAILS ---
+    // Dicek LEBIH DULU supaya panel tetap jalan walaupun Firestore belum
+    // di-setup. Tidak butuh akses database sama sekali, jadi tidak hang.
+    if (ENV_ADMIN_EMAILS.includes(email)) {
+      setAdmin({ email, role: "owner" });
+      setStatus("authenticated");
+      return;
+    }
+
+    // --- Sumber 2 (SEKUNDER): Firestore `admins/{uid}` ---
+    // Hanya dicoba kalau email TIDAK ada di env. Kalau Firestore belum ada /
+    // rules menolak, error tidak boleh bikin hang — langsung tolak bersih.
     try {
-      // --- Sumber 1: Firestore `admins/{uid}` (kunci utama) ---
       const ref = doc(db, ADMINS_COLLECTION, uid);
       const snap = await getDoc(ref);
 
@@ -88,27 +99,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus("authenticated");
         return;
       }
-
-      // --- Sumber 2: env fallback ------------
-      if (ENV_ADMIN_EMAILS.includes(email)) {
-        setAdmin({ email, role: "owner" });
-        setStatus("authenticated");
-        return;
-      }
-
-      // Tidak terdaftar di mana pun → tolak.
-      await firebaseSignOut(auth);
-      setUser(null);
-      setAdmin(null);
-      setStatus("denied");
     } catch (e) {
-      console.error("verifyAdmin error", e);
-      // Jangan panic: jangan biarkan error malah meloloskan. Tolak.
-      await firebaseSignOut(auth);
-      setUser(null);
-      setAdmin(null);
-      setStatus("denied");
+      // Firestore gagal (belum ada db / permission denied) — jangan panic.
+      console.warn("Firestore admin lookup gagal (diabaikan):", e);
     }
+
+    // Tidak terdaftar sebagai admin (env maupun Firestore) → tolak.
+    await firebaseSignOut(auth);
+    setUser(null);
+    setAdmin(null);
+    setStatus("denied");
   }, []);
 
   useEffect(() => {
