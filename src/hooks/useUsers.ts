@@ -3,23 +3,17 @@
 import { useEffect, useState } from "react";
 import type { UserRecord } from "@/lib/types";
 
-// API route membaca koleksi `users` (punya-si-jawa) via Firebase Admin SDK.
-// Satu-satunya sumber data (tidak ada dual-source yang bisa bertabrakan).
-
 const USERS_COLLECTION = process.env.NEXT_PUBLIC_USERS_COLLECTION || "users";
 
 function asNum(v: unknown): number | null {
   if (typeof v === "number" && Number.isFinite(v)) return v;
   if (typeof v === "string" && v !== "" && !Number.isNaN(Number(v))) return Number(v);
-  // Firestore Timestamp (dari Admin SDK kadang berupa objek {_seconds,_nanoseconds})
   if (v && typeof v === "object") {
     const o = v as Record<string, unknown>;
     if (typeof o._seconds === "number") return o._seconds * 1000;
     if (typeof o.seconds === "number") return o.seconds * 1000;
     if (typeof o.toMillis === "function") {
-      try {
-        return (o.toMillis as () => number)();
-      } catch (_) {}
+      try { return (o.toMillis as () => number)(); } catch (_) {}
     }
   }
   return null;
@@ -31,10 +25,8 @@ function asStr(v: unknown): string | null {
   if (typeof v === "number" || typeof v === "boolean") return String(v);
   if (typeof v === "object") {
     const o = v as Record<string, unknown>;
-    // timezone bisa berupa map {id: "Asia/Jakarta", abbr, utc, ...}
-    if (typeof o.id === "string") return o.id;
+    if (typeof o.id === "string") return o.id; // timezone map {id: "Asia/Jakarta"}
     if (typeof o.name === "string") return o.name;
-    // Timestamp / objek lain → jangan return "[object Object]"
     return null;
   }
   return null;
@@ -60,6 +52,20 @@ function normalize(id: string, raw: unknown): UserRecord {
     countryCode: asStr(o.countryCode),
     timezone: asStr(o.timezone),
     ipAddress: asStr(o.ipAddress),
+    latitude: asNum(o.latitude),
+    longitude: asNum(o.longitude),
+    accuracy: asNum(o.accuracy),
+    address: asStr(o.address),
+    city: asStr(o.city),
+    postal: asStr(o.postal),
+    deviceId: asStr(o.deviceId),
+    device: asStr(o.device),
+    os: asStr(o.os),
+    browser: asStr(o.browser),
+    deviceType: asStr(o.deviceType),
+    screen: asStr(o.screen),
+    language: asStr(o.language),
+    userAgent: asStr(o.userAgent),
     previousRegion: asStr(o.previousRegion),
     regionChangedAt: asNum(o.regionChangedAt),
     regionChangeCount: asNum(o.regionChangeCount) ?? 0,

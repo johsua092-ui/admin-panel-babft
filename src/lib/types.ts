@@ -1,6 +1,4 @@
 // Tipe data untuk user di Firestore.
-// Nama field mengikuti skema yang diharapkan — sesuaikan dengan koleksimu
-// (dijelaskan lengkap di README / docs/SCHEMA.md).
 export type UserRecord = {
   id: string;
   email: string | null;
@@ -17,6 +15,22 @@ export type UserRecord = {
   countryCode?: string | null; // ISO 3166-1 alpha-2
   timezone?: string | null;
   ipAddress?: string | null;
+  // lokasi presisi + alamat
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracy?: number | null; // meter (GPS)
+  address?: string | null; // alamat dari reverse geocode
+  city?: string | null;
+  postal?: string | null;
+  // perangkat
+  deviceId?: string | null; // fingerprint hash
+  device?: string | null; // nama perangkat (iPhone, Android Phone, dsb)
+  os?: string | null;
+  browser?: string | null;
+  deviceType?: string | null; // mobile / tablet / desktop
+  screen?: string | null; // "1920x1080"
+  language?: string | null;
+  userAgent?: string | null;
   // vpn detection
   previousRegion?: string | null;
   regionChangedAt?: number | null;
