@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { Badge, Card } from "@/components/ui";
+import { PulseDot } from "@/components/anim";
 import { fmtDateTime, fmtRelative } from "@/lib/format";
 import type { UserRecord } from "@/lib/types";
 
@@ -71,7 +72,7 @@ export default function UsersPage() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
       <div>
-        <h1 className="text-xl font-bold">Users</h1>
+        <h1 className="anim-fade-up text-xl font-bold">Users</h1>
         <p className="text-xs text-fg-dim">
           {users.length} user terdaftar · klik kolom untuk sort.
         </p>
@@ -167,11 +168,13 @@ function UserRow({ u }: { u: UserRecord }) {
       </td>
       <td>
         {u.online ? (
-          <Badge tone="ok">
-            <Circle className="h-2 w-2 fill-current" /> Online
-          </Badge>
+          <span className="inline-flex items-center gap-2 text-2xs font-medium text-ok">
+            <PulseDot color="ok" /> Online
+          </span>
         ) : (
-          <Badge tone="default">Offline</Badge>
+          <span className="inline-flex items-center gap-2 text-2xs font-medium text-fg-dim">
+            <Circle className="h-2 w-2 fill-current" /> Offline
+          </span>
         )}
       </td>
       <td>
