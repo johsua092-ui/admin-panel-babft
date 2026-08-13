@@ -202,7 +202,7 @@ function UserRow({ u, expanded, onToggle, onDelete, deleting }: {
             </span>
           ) : (
             <span className="inline-flex items-center gap-2 text-2xs font-medium text-fg-dim">
-              <Circle className="h-2 w-2 fill-current" /> Offline
+              <Circle className="h-2 w-2 fill-current text-fg-muted" /> Offline
             </span>
           )}
         </td>

@@ -82,9 +82,9 @@ export default function MapPage() {
           const online = u.online;
           const m = L.circleMarker([u.latitude, u.longitude], {
             radius: 8,
-            color: online ? "#22c55e" : (u.flaggedAsVpn ? "#ef4444" : "#38bdf8"),
+            color: online ? "#22c55e" : (u.flaggedAsVpn ? "#ef4444" : "#9ca3af"),
             weight: 2,
-            fillColor: online ? "#22c55e" : (u.flaggedAsVpn ? "#ef4444" : "#38bdf8"),
+            fillColor: online ? "#22c55e" : (u.flaggedAsVpn ? "#ef4444" : "#9ca3af"),
             fillOpacity: 0.8,
           }).addTo(leafletMapRef.current);
           const isGuest = u.isGuest;
@@ -104,7 +104,7 @@ ${u.city || u.region || ""} · ${u.device || u.os || "?"}${online ? " · online"
         <div>
           <h1 className="anim-fade-up text-xl font-bold">Peta User</h1>
           <p className="text-xs text-fg-dim">
-            {coordsUsers.length} user dengan koordinat · hijau = online · merah = VPN · biru = offline.
+            {coordsUsers.length} user dengan koordinat · hijau = online · merah = VPN · abu-abu = offline.
           </p>
         </div>
         <button onClick={load} className="inline-flex items-center gap-1.5 rounded border border-bg-border px-3 py-1.5 text-xs text-fg-muted hover:text-fg-primary">
