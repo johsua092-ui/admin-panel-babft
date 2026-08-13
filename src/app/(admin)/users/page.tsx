@@ -1,10 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MapPin, Clock3, Wifi, ShieldAlert, Search, ChevronUp, ChevronDown,
   Circle, Monitor, Smartphone, Tablet, MonitorSmartphone, Navigation,
-  Home, Cpu, Fingerprint, Languages, Trash2,
+  Home, Cpu, Fingerprint, Languages, Trash2, Download, History,
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { Badge, Card } from "@/components/ui";
@@ -44,6 +44,10 @@ export default function UsersPage() {
     } finally {
       setDeletingId(null);
     }
+  }
+
+  function exportCsv() {
+    window.open("/api/users/export", "_blank");
   }
 
   function toggleSort(key: SortKey) {
@@ -87,11 +91,19 @@ export default function UsersPage() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
-      <div>
-        <h1 className="anim-fade-up text-xl font-bold">Users</h1>
-        <p className="text-xs text-fg-dim">
-          {users.length} user terdaftar · klik baris untuk detail lokasi & perangkat.
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="anim-fade-up text-xl font-bold">Users</h1>
+          <p className="text-xs text-fg-dim">
+            {users.length} user terdaftar · klik baris untuk detail lokasi & perangkat.
+          </p>
+        </div>
+        <button
+          onClick={exportCsv}
+          className="inline-flex items-center gap-1.5 rounded border border-bg-border px-3 py-1.5 text-xs text-fg-muted hover:text-fg-primary"
+        >
+          <Download className="h-3.5 w-3.5" /> Export CSV
+        </button>
       </div>
 
       <div className="relative">
@@ -257,6 +269,7 @@ function UserDetail({ u }: { u: UserRecord }) {
     : null;
 
   return (
+    <>
     <div className="anim-fade-in grid grid-cols-1 gap-4 p-4 md:grid-cols-3">
       {/* Lokasi & Map */}
       <div className="rounded border border-bg-border bg-bg-panel p-3">
@@ -329,6 +342,57 @@ function UserDetail({ u }: { u: UserRecord }) {
           </div>
         )}
       </div>
+    </div>
+    <HistoryPanel uid={u.id} isGuest={u.isGuest} />
+    </>
+  );
+}
+
+function HistoryPanel({ uid, isGuest }: { uid: string; isGuest?: boolean }) {
+  const [history, setHistory] = useState<any[] | null>(null);
+  const [hErr, setHErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isGuest) { setHistory([]); return; }
+    let cancel = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/users/${encodeURIComponent(uid)}/history`);
+        if (!r.ok) throw new Error(`API ${r.status}`);
+        const j = await r.json();
+        if (!cancel) setHistory(j.history || []);
+      } catch (e) {
+        if (!cancel) setHErr(e instanceof Error ? e.message : String(e));
+      }
+    })();
+    return () => { cancel = true; };
+  }, [uid, isGuest]);
+
+  if (isGuest) return null;
+  if (hErr) return <div className="px-4 pb-3 text-2xs text-fg-dim">Riwayat tidak tersedia.</div>;
+  if (history === null) return <div className="px-4 pb-3 text-2xs text-fg-dim">Memuat riwayat…</div>;
+
+  return (
+    <div className="border-t border-bg-border px-4 py-3">
+      <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-fg-muted">
+        <History className="h-3.5 w-3.5" /> Riwayat kunjungan ({history.length})
+      </div>
+      {history.length === 0 ? (
+        <div className="text-2xs text-fg-dim">Belum ada riwayat.</div>
+      ) : (
+        <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
+          {history.slice(0, 30).map((h, i) => (
+            <div key={i} className="flex items-center gap-2 text-2xs text-fg-muted">
+              <span className="w-32 shrink-0 tabular-nums">{fmtDateTime(h.timestamp)}</span>
+              <span className="shrink-0">{h.device || h.os || "?"}</span>
+              {h.browser && <span className="shrink-0 text-fg-dim">· {h.browser}</span>}
+              <span className="truncate text-fg-dim">
+                {[h.city, h.region].filter(Boolean).join(", ") || "—"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
-  Activity, Bug, KeyRound, Radio, RefreshCw,
+  Activity, Bug, KeyRound, Radio, RefreshCw, Download,
   ShieldAlert, TriangleAlert, Users,
 } from "lucide-react";
 import { StatCard, Card, Badge } from "@/components/ui";
@@ -87,12 +87,20 @@ export default function AnalyticsPage() {
             Error logs · aktivitas login · deteksi aktivitas mencurigakan.
           </p>
         </div>
-        <button
-          onClick={load}
-          className="inline-flex items-center gap-1.5 rounded border border-bg-border px-3 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg-primary"
-        >
-          <RefreshCw className="h-3.5 w-3.5" /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => window.open("/api/analytics/export", "_blank")}
+            className="inline-flex items-center gap-1.5 rounded border border-bg-border px-3 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg-primary"
+          >
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </button>
+          <button
+            onClick={load}
+            className="inline-flex items-center gap-1.5 rounded border border-bg-border px-3 py-1.5 text-xs text-fg-muted transition-colors hover:text-fg-primary"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </button>
+        </div>
       </div>
 
       {error && (

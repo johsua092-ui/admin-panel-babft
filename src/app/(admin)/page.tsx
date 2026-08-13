@@ -1,21 +1,53 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Users,
   UserCheck,
   Clock,
   Globe,
-  CalendarRange,
   ShieldAlert,
   Activity,
+  TrendingUp,
+  Radio,
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { StatCard, Card, Badge } from "@/components/ui";
+import { PulseDot } from "@/components/anim";
 import { fmtDateTime, fmtRelative, computeLoginRange } from "@/lib/format";
 
 export default function DashboardPage() {
   const { users, loading, error } = useUsers();
+  const [recentEvents, setRecentEvents] = useState<any[]>([]);
+  const [dailyTrend, setDailyTrend] = useState<{ label: string; count: number }[]>([]);
+
+  useEffect(() => {
+    const t = setInterval(async () => {
+      try {
+        const r = await fetch("/api/analytics");
+        if (!r.ok) return;
+        const j = await r.json();
+        const ev = (j.events || []) as any[];
+        setRecentEvents(ev.slice(0, 12));
+        // trend 7 hari dari login_success + login_failed + heartbeat
+        const map = new Map<string, number>();
+        const now = Date.now();
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(now - i * 86400000);
+          const key = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+          map.set(key, 0);
+        }
+        for (const e of ev) {
+          if (!e.timestamp) continue;
+          const d = new Date(e.timestamp);
+          const key = d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+          if (map.has(key)) map.set(key, (map.get(key) ?? 0) + 1);
+        }
+        setDailyTrend(Array.from(map.entries()).map(([label, count]) => ({ label, count })));
+      } catch (_) {}
+    }, 8000);
+    return () => clearInterval(t);
+  }, []);
 
   const stats = useMemo(() => {
     const total = users.length;
@@ -168,6 +200,69 @@ export default function DashboardPage() {
           })}
         </div>
       </Card>
+
+      {/* Tren login harian (7 hari) */}
+      <Card title="Tren Aktivitas (7 hari terakhir)">
+        <div className="flex h-32 items-end gap-2">
+          {dailyTrend.length === 0 && <div className="text-sm text-fg-dim">Mengumpulkan data…</div>}
+          {dailyTrend.map((d, i) => {
+            const max = Math.max(1, ...dailyTrend.map((x) => x.count));
+            return (
+              <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                <div
+                  className="w-full rounded-t-sm bg-accent/70 transition-all"
+                  style={{ height: `${(d.count / max) * 100}%`, minHeight: d.count > 0 ? 4 : 1 }}
+                  title={`${d.label}: ${d.count} event`}
+                />
+                <span className="text-2xs text-fg-dim">{d.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Online sekarang + aktivitas terakhir */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Card title="Online Sekarang">
+          {stats.online === 0 && <div className="text-sm text-fg-dim">Tidak ada user online.</div>}
+          <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
+            {users.filter((u) => u.online).slice(0, 20).map((u) => (
+              <div key={u.id} className="flex items-center gap-2 rounded border border-bg-border bg-bg-panel2 px-2 py-1.5">
+                <PulseDot color="ok" />
+                <span className="truncate text-xs">{u.displayName || u.email || (u.isGuest ? "Guest" : "?")}</span>
+                {u.isGuest && <Badge tone="info">Guest</Badge>}
+                <span className="ml-auto text-2xs text-fg-dim">{u.city || u.region || ""}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card title="Aktivitas Terakhir">
+          {recentEvents.length === 0 && <div className="text-sm text-fg-dim">Belum ada aktivitas.</div>}
+          <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+            {recentEvents.map((e, i) => {
+              const meta: Record<string, { t: string; c: string }> = {
+                error: { t: "Error", c: "text-danger" },
+                login_success: { t: "Login", c: "text-ok" },
+                login_failed: { t: "Login gagal", c: "text-warn" },
+                heartbeat: { t: "Visit", c: "text-fg-muted" },
+              };
+              const m = meta[e.kind] || { t: e.kind, c: "text-fg-muted" };
+              return (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className={`w-20 shrink-0 tabular-nums text-2xs text-fg-dim`}>
+                    {fmtDateTime(e.timestamp)}
+                  </span>
+                  <span className={`shrink-0 font-medium ${m.c}`}>{m.t}</span>
+                  <span className="truncate text-fg-muted">
+                    {e.kind === "error" ? (e.message || e.error) : (e.email || e.route || "")}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -8,10 +8,12 @@ import {
   Users,
   Server,
   Activity,
+  Map,
   ShieldCheck,
   LogOut,
   Menu,
   X,
+  Bell,
   BookOpen,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
@@ -22,6 +24,7 @@ const NAV = [
   { href: "/users", label: "Users", icon: Users },
   { href: "/servers", label: "Servers", icon: Server },
   { href: "/analytics", label: "Analytics", icon: Activity },
+  { href: "/map", label: "Peta User", icon: Map },
 ];
 
 export function RootLayout({ children }: { children: ReactNode }) {
@@ -29,6 +32,25 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    let lastTotal = -1;
+    async function poll() {
+      try {
+        const r = await fetch("/api/analytics");
+        if (!r.ok) return;
+        const j = await r.json();
+        const s = j.summary || {};
+        const alerts = (s.failedLogins || 0) + (s.errors || 0);
+        if (lastTotal === -1) lastTotal = alerts;
+        setUnread(alerts);
+      } catch (_) {}
+    }
+    poll();
+    const t = setInterval(poll, 10000);
+    return () => clearInterval(t);
+  }, []);
 
   async function handleSignOut() {
     await signOut();
@@ -75,6 +97,11 @@ export function RootLayout({ children }: { children: ReactNode }) {
               >
                 <Icon className="h-4 w-4" />
                 {item.label}
+                {item.href === "/analytics" && unread > 0 && (
+                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-2xs font-bold text-white animate-pulse">
+                    {unread}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -120,6 +147,14 @@ export function RootLayout({ children }: { children: ReactNode }) {
           </button>
           <div className="text-sm font-semibold">Admin Panel</div>
           <div className="ml-auto flex items-center gap-2 text-2xs text-fg-dim">
+            <Link href="/analytics" className="relative rounded-md border border-bg-border p-2 text-fg-muted hover:text-fg-primary">
+              <Bell className="h-4 w-4" />
+              {unread > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-2xs font-bold text-white">
+                  {unread}
+                </span>
+              )}
+            </Link>
             <span className="rounded border border-bg-border px-2 py-1">
               Firebase · Vercel
             </span>
