@@ -9,6 +9,19 @@ sehingga tidak ada yang di-hardcode di kode.
 Ini adalah **pintu keamanan** panel. Hanya akun Google yang UID-nya ada sebagai
 document di koleksi ini yang boleh masuk.
 
+> Ada **dua sumber verifikasi** yang dipakai panel, berurutan:
+> 1. **Firestore `admins`** (kunci utama, bisa dikelola live) — document id = UID.
+> 2. **Env `NEXT_PUBLIC_ADMIN_EMAILS`** (fallback cepat) — daftar email koma-separated.
+>
+> Tidak ada email/UID yang di-hardcode di kode. Untuk produksi, andalkan Firestore.
+
+**Admin saat ini (2 akun):**
+
+| Email | Role |
+| --- | --- |
+| `johsua092@gmail.com` | owner |
+| `aremakonveksi@gmail.com` | admin |
+
 Menggunakan **UID Firebase Auth** sebagai document ID (bukan email), agar unik & aman.
 
 ```

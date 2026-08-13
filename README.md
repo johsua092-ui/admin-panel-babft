@@ -12,7 +12,9 @@ Admin panel untuk **BABFT Learning** — dashboard monitoring user dengan securi
 ## Fitur
 
 - **Login Google + whitelist admin** — hanya akun Google yang UID-nya terdaftar di koleksi
-  `admins` di Firestore yang bisa masuk. Tidak ada hardcode akun.
+  `admins` di Firestore (atau `NEXT_PUBLIC_ADMIN_EMAILS`) yang bisa masuk. Tidak ada
+  hardcode akun di kode. Saat ini ada **2 admin**: `johsua092@gmail.com` (owner) dan
+  `aremakonveksi@gmail.com` (admin).
 - **Dashboard**: total user, user online, rentang waktu login, distribusi login per jam,
   top region/negara.
 - **Users**: daftar user dengan region, country code, timezone, IP, status online,
@@ -56,6 +58,7 @@ Admin panel untuk **BABFT Learning** — dashboard monitoring user dengan securi
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Sender ID |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | App ID |
 | `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` | Measurement ID |
+| `NEXT_PUBLIC_ADMIN_EMAILS` | Daftar email admin (koma-separated), fallback env |
 | `NEXT_PUBLIC_ADMINS_COLLECTION` | Nama koleksi admin (default `admins`) |
 | `NEXT_PUBLIC_USERS_COLLECTION` | Nama koleksi user (default `users`) |
 

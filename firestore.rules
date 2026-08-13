@@ -1,0 +1,51 @@
+rules_version = '2';
+
+// Firestore Security Rules — BABFT Admin Panel
+//
+// Prinsip: default DENY semua. Hanya izinkan akses sesuai ketentuan di bawah.
+// Pasang lewat Firebase Console (Firestore -> Rules) atau firebase-tools.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------------------
+    // Koleksi `admins` — whitelist admin. SANGAT sensitif.
+    // Hanya boleh dibaca oleh admin yang SUDAH terdaftar, dan ditulis oleh
+    // owner (via aturan tambahan / Cloud Function / service account).
+    // -----------------------------------------------------------------------
+    match /admins/{uid} {
+      // Hanya izinkan baca jika requester (request.auth.uid) == uid yang diminta,
+      // artinya seorang user hanya bisa melihat ENTRY DIRINYA sendiri.
+      // Panel admin mem-verifikasi dengan membaca doc (uid == user.uid).
+      allow read: if request.auth != null && request.auth.uid == uid;
+
+      // Tulis hanya lewat service account / Cloud Function (bukan dari client).
+      // Untuk demo bisa dinonaktifkan (allow write: if false).
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------------
+    // Koleksi `users` — data aktivitas user.
+    // Baca: hanya untuk admin yang UID-nya terdaftar di `admins`.
+    // Tulis: service account / Cloud Function.
+    // -----------------------------------------------------------------------
+    match /users/{uid} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------------
+    // Helper function: apakah requester adalah admin terdaftar & aktif?
+    // -----------------------------------------------------------------------
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+        && get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+
+    // Blokir semua koleksi lain (default deny).
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
