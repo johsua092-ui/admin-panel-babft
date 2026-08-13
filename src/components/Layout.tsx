@@ -26,7 +26,7 @@ const NAV = [
   { href: "/servers", label: "Servers", icon: Server },
   { href: "/analytics", label: "Analytics", icon: Activity },
   { href: "/map", label: "Peta User", icon: Map },
-  { href: "/history", label: "History Admin", icon: History },
+  { href: "/history", label: "History", icon: History },
 ];
 
 export function RootLayout({ children }: { children: ReactNode }) {
@@ -116,7 +116,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
             </div>
             <div className="min-w-0 leading-tight">
               <div className="truncate text-xs font-medium">{admin?.email}</div>
-              <div className="text-2xs text-fg-dim">{admin?.role ?? "admin"}</div>
+              <div className="text-2xs text-fg-dim">{admin?.role ?? "anggota"}</div>
             </div>
           </div>
           <button

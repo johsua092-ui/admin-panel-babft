@@ -33,7 +33,7 @@ export default function LoginPage() {
             <div className="mb-4 flex items-start gap-2 rounded border border-[#5b1f1f] bg-[#331414] p-3 text-xs text-danger">
               <Lock className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Access denied. Akun Google ini tidak terdaftar sebagai admin.
+                Access denied. Akun ini tidak punya akses.
               </span>
             </div>
           )}

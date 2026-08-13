@@ -102,9 +102,9 @@ ${u.city || u.region || ""} · ${u.device || u.os || "?"}${online ? " · online"
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="anim-fade-up text-xl font-bold">Peta User</h1>
+          <h1 className="anim-fade-up text-xl font-bold">Peta Penjual Sayur</h1>
           <p className="text-xs text-fg-dim">
-            {coordsUsers.length} user dengan koordinat · hijau = online · merah = VPN · abu-abu = offline.
+            Menampilkan penjual sayur di mana saja · hijau = online · merah = VPN · abu-abu = offline.
           </p>
         </div>
         <button onClick={load} className="inline-flex items-center gap-1.5 rounded border border-bg-border px-3 py-1.5 text-xs text-fg-muted hover:text-fg-primary">
@@ -116,13 +116,13 @@ ${u.city || u.region || ""} · ${u.device || u.os || "?"}${online ? " · online"
         <div className="rounded border border-[#5b1f1f] bg-[#331414] p-4 text-sm text-danger">Gagal: {error}</div>
       )}
 
-      <div className="overflow-hidden rounded-lg border border-bg-border">
+      <div className="relative z-0 overflow-hidden rounded-lg border border-bg-border">
         <div ref={mapRef} className="h-[70vh] w-full" />
       </div>
 
       <div className="text-2xs text-fg-dim">
         <MapPin className="mr-1 inline h-3 w-3" />
-        User tanpa koordinat (belum ada IP/geo) tidak tampil di peta — jumlah: {users.length - coordsUsers.length}.
+        Penjual sayur tanpa koordinat tidak tampil di peta — jumlah: {users.length - coordsUsers.length}.
       </div>
     </div>
   );

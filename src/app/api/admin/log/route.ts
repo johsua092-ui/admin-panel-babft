@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const uid = (body.uid || "").toString();
     const email = (body.email || "").toString();
-    const role = (body.role || "admin").toString();
+    const role = (body.role || "anggota").toString();
     if (!uid || !email) {
       return NextResponse.json({ error: "uid/email kosong" }, { status: 400 });
     }

@@ -42,7 +42,7 @@ export default function HistoryPage() {
         setRegisteredAdmins(
           snap.docs.map((d) => {
             const data = d.data() as { email?: string; role?: string; active?: boolean };
-            return { email: data.email ?? d.id, role: data.role ?? "admin", active: data.active !== false };
+            return { email: data.email ?? d.id, role: data.role ?? "anggota", active: data.active !== false };
           })
         );
       } catch (_) {}
@@ -55,8 +55,8 @@ export default function HistoryPage() {
     <div className="mx-auto flex max-w-6xl flex-col gap-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="anim-fade-up text-xl font-bold">History Admin</h1>
-          <p className="text-xs text-fg-dim">Log aktivitas login admin panel.</p>
+          <h1 className="anim-fade-up text-xl font-bold">History</h1>
+          <p className="text-xs text-fg-dim">Log aktivitas login.</p>
         </div>
         <button onClick={load} className="inline-flex items-center gap-1.5 rounded border border-bg-border px-3 py-1.5 text-xs text-fg-muted hover:text-fg-primary">
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
@@ -67,16 +67,16 @@ export default function HistoryPage() {
 
       {/* Ringkasan */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard icon={KeyRound} label="Total login admin" value={logs.length} tone="accent" />
-        <StatCard icon={UserCog} label="Admin unik" value={admins.length} />
-        <StatCard icon={ShieldCheck} label="Admin terdaftar" value={registeredAdmins.length} tone="ok" />
+        <StatCard icon={KeyRound} label="Total login" value={logs.length} tone="accent" />
+        <StatCard icon={UserCog} label="Akun unik" value={admins.length} />
+        <StatCard icon={ShieldCheck} label="Akun terdaftar" value={registeredAdmins.length} tone="ok" />
         <StatCard icon={Clock} label="Login terakhir" value={logs[0] ? fmtDateTime(logs[0].timestamp) : "—"} />
       </div>
 
       {/* Daftar admin */}
-      <Card title="Daftar Admin (siapa saja)">
+      <Card title="Daftar Akun">
         {registeredAdmins.length === 0 && admins.length === 0 && (
-          <div className="text-sm text-fg-dim">Belum ada data admin.</div>
+          <div className="text-sm text-fg-dim">Belum ada data akun.</div>
         )}
         <div className="flex flex-col gap-2">
           {registeredAdmins.map((a, i) => (
@@ -100,7 +100,7 @@ export default function HistoryPage() {
       </Card>
 
       {/* Statistik login per admin */}
-      <Card title="Login per Admin">
+      <Card title="Login per Akun">
         {admins.length === 0 && <div className="text-sm text-fg-dim">Belum ada aktivitas login.</div>}
         <div className="overflow-x-auto">
           <table className="admin-table">
@@ -129,7 +129,7 @@ export default function HistoryPage() {
       </Card>
 
       {/* Riwayat login detail */}
-      <Card title="Riwayat Login Admin (log)">
+      <Card title="Riwayat Login">
         {logs.length === 0 && <div className="text-sm text-fg-dim">Belum ada riwayat login.</div>}
         <div className="overflow-x-auto">
           <table className="admin-table">

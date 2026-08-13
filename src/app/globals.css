@@ -107,3 +107,17 @@ table.admin-table tbody tr:hover {
 }
 .anim-spin-slow { animation: spinSlow 8s linear infinite; }
 .anim-breathe { animation: breathe 2.4s ease-in-out infinite; }
+
+/* ===== Leaflet map: kunci stacking context agar tidak nimpa sidebar/header ===== */
+.leaflet-container {
+  z-index: 0;
+}
+.leaflet-pane,
+.leaflet-tile-pane,
+.leaflet-control-container {
+  z-index: 0;
+}
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 0;
+}
