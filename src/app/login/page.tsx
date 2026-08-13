@@ -22,7 +22,7 @@ export default function LoginPage() {
               <BookOpen className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-lg font-bold">BABFT Admin Console</h1>
+              <h1 className="text-lg font-bold">Penjual Sayur</h1>
               <p className="text-2xs text-fg-dim">
                 Restricted access · authorized personnel only
               </p>

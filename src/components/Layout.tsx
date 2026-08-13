@@ -73,8 +73,8 @@ export function RootLayout({ children }: { children: ReactNode }) {
             <BookOpen className="h-4 w-4" />
           </div>
           <div className="leading-tight">
-            <div className="text-sm font-bold tracking-wide">BABFT</div>
-            <div className="text-2xs text-fg-dim">Admin Console</div>
+            <div className="text-sm font-bold tracking-wide">Penjual Sayur</div>
+            <div className="text-2xs text-fg-dim">Panel</div>
           </div>
         </div>
 
@@ -147,7 +147,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
           >
             {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
-          <div className="text-sm font-semibold">Admin Panel</div>
+          <div className="text-sm font-semibold">Panel</div>
           <div className="ml-auto flex items-center gap-2 text-2xs text-fg-dim">
             <Link href="/analytics" className="relative rounded-md border border-bg-border p-2 text-fg-muted hover:text-fg-primary">
               <Bell className="h-4 w-4" />

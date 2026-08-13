@@ -21,7 +21,7 @@ export type ServerSpec = {
 export const SERVERS: ServerSpec[] = [
   {
     id: "vps-01",
-    name: "BABFT Node 01",
+    name: "Server 01",
     cpu: "2 vCPU Intel Xeon Platinum 8358 @ 2.60GHz",
     ram: "16 GB",
     storage: "155 GB SSD",
@@ -32,7 +32,7 @@ export const SERVERS: ServerSpec[] = [
   },
   {
     id: "vps-02",
-    name: "BABFT Compute Alpha",
+    name: "Server 02",
     cpu: "AMD EPYC 9654P — 96 Cores / 192 Threads",
     ram: "512 GB DDR5 ECC",
     storage: "4 TB NVMe SSD",
@@ -44,7 +44,7 @@ export const SERVERS: ServerSpec[] = [
   },
   {
     id: "vps-03",
-    name: "BABFT Compute Beta",
+    name: "Server 03",
     cpu: "Intel Xeon Platinum 8592+ — 64 Cores / 128 Threads",
     ram: "512 GB DDR5 ECC",
     storage: "4 TB NVMe SSD",
@@ -56,7 +56,7 @@ export const SERVERS: ServerSpec[] = [
   },
   {
     id: "vps-04",
-    name: "BABFT Flagship",
+    name: "Server 04",
     cpu: "AMD EPYC 9754 — 128 Cores / 256 Threads",
     ram: "1 TB DDR5 ECC",
     storage: "8 TB NVMe SSD",

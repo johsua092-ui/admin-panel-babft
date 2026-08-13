@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "BABFT Admin Console",
-  description: "Admin panel for BABFT Learning",
+  title: "Penjual Sayur",
+  description: "Panel operasional",
 };
 
 export default function RootLayout({
