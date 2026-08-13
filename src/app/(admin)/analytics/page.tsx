@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Activity, Bug, KeyRound, Radio, RefreshCw, Download,
-  ShieldAlert, TriangleAlert, Users,
+  ShieldAlert, TriangleAlert, Users, Network,
 } from "lucide-react";
 import { StatCard, Card, Badge } from "@/components/ui";
 import { PulseDot } from "@/components/anim";
@@ -55,6 +55,16 @@ export default function AnalyticsPage() {
   const [suspicious, setSuspicious] = useState<Suspicious[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [traffic, setTraffic] = useState<{ day: any; week: any } | null>(null);
+
+  async function loadTraffic() {
+    try {
+      const r = await fetch("/api/traffic");
+      if (!r.ok) return;
+      const j = await r.json();
+      if (j.day || j.week) setTraffic(j);
+    } catch (_) {}
+  }
 
   async function load() {
     try {
@@ -74,6 +84,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     load();
+    loadTraffic();
     const t = setInterval(load, 8000);
     return () => clearInterval(t);
   }, []);
@@ -118,6 +129,21 @@ export default function AnalyticsPage() {
         <StatCard icon={Users} label="Device unik" value={summary?.uniqueDevices ?? 0} />
         <StatCard icon={Activity} label="1 mnt terakhir" value={summary?.lastMin ?? 0} />
       </div>
+
+      {/* Traffic Internet (Vercel Web Analytics) */}
+      {traffic && (
+        <Card title="Traffic Internet (Vercel Web Analytics)">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard icon={Network} label="Pageviews 24 jam" value={traffic.day?.pageviews ?? 0} tone="accent" />
+            <StatCard icon={Users} label="Visitors 24 jam" value={traffic.day?.visitors ?? 0} />
+            <StatCard icon={Network} label="Pageviews 7 hari" value={traffic.week?.pageviews ?? 0} />
+            <StatCard icon={Users} label="Visitors 7 hari" value={traffic.week?.visitors ?? 0} />
+          </div>
+          <div className="mt-2 text-2xs text-fg-dim">
+            Sumber: Vercel Web Analytics (traffic produksi). Lonjakan pageviews mendadak bisa menandakan flood/DDoS.
+          </div>
+        </Card>
+      )}
 
       {/* Deteksi mencurigakan */}
       {suspicious.length > 0 && (

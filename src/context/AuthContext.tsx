@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
@@ -123,6 +124,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => unsub();
   }, [verifyAdmin]);
+
+  // Catat login admin ke server (sekali per session) untuk menu History.
+  const loggedRef = useRef(false);
+  useEffect(() => {
+    if (status === "authenticated" && admin && user && !loggedRef.current) {
+      loggedRef.current = true;
+      fetch("/api/admin/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          email: admin.email,
+          role: admin.role,
+        }),
+      }).catch(() => {});
+    }
+    if (status === "unauthenticated") {
+      loggedRef.current = false;
+    }
+  }, [status, admin, user]);
 
   const signInWithGoogle = useCallback(async () => {
     try {

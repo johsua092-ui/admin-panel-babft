@@ -9,6 +9,7 @@ import {
   Server,
   Activity,
   Map,
+  History,
   ShieldCheck,
   LogOut,
   Menu,
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/servers", label: "Servers", icon: Server },
   { href: "/analytics", label: "Analytics", icon: Activity },
   { href: "/map", label: "Peta User", icon: Map },
+  { href: "/history", label: "History Admin", icon: History },
 ];
 
 export function RootLayout({ children }: { children: ReactNode }) {
