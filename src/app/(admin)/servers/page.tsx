@@ -89,11 +89,6 @@ export default function ServersPage() {
         ))}
       </div>
 
-      <div className="anim-fade-in rounded-lg border border-bg-border bg-bg-panel p-4 text-2xs text-fg-dim">
-        Metrik di atas adalah <span className="text-fg-muted">simulasi real-time</span> untuk demo
-        antarmuka. Saat koneksi live ke VPS tersedia (agen/endpoint polling), angka & grafik akan
-        membaca nilai sebenarnya dari masing-masing server.
-      </div>
     </div>
   );
 }

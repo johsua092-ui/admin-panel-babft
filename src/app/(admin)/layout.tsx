@@ -5,21 +5,18 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { RootLayout } from "@/components/Layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function Gate({ children }: { children: ReactNode }) {
   const { status } = useAuth();
   const router = useRouter();
-  // Grace period: jangan langsung redirect saat status berubah ke
-  // "unauthenticated" sesaat (mis. saat Firebase restore session / reload).
   const deniedAt = useRef<number | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated" || status === "denied") {
       if (deniedAt.current === null) deniedAt.current = Date.now();
-      const delay = status === "denied" ? 50 : 800; // unauthenticated dapat grace 800ms
-      const t = setTimeout(() => {
-        router.replace("/login");
-      }, delay);
+      const delay = status === "denied" ? 50 : 800;
+      const t = setTimeout(() => router.replace("/login"), delay);
       return () => clearTimeout(t);
     }
     deniedAt.current = null;
@@ -38,7 +35,11 @@ function Gate({ children }: { children: ReactNode }) {
     );
   }
 
-  return <RootLayout>{children}</RootLayout>;
+  return (
+    <ErrorBoundary>
+      <RootLayout>{children}</RootLayout>
+    </ErrorBoundary>
+  );
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
