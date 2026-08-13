@@ -28,7 +28,16 @@ function asNum(v: unknown): number | null {
 function asStr(v: unknown): string | null {
   if (v == null) return null;
   if (typeof v === "string") return v;
-  return String(v);
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    // timezone bisa berupa map {id: "Asia/Jakarta", abbr, utc, ...}
+    if (typeof o.id === "string") return o.id;
+    if (typeof o.name === "string") return o.name;
+    // Timestamp / objek lain → jangan return "[object Object]"
+    return null;
+  }
+  return null;
 }
 
 function asBool(v: unknown): boolean {
