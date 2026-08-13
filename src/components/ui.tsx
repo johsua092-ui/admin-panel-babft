@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
+import { CountUp } from "@/components/anim";
 
 export function StatCard({
   icon: Icon,
@@ -23,15 +24,28 @@ export function StatCard({
     warn: "text-warn",
     danger: "text-danger",
   };
+  const iconBg: Record<string, string> = {
+    default: "bg-bg-panel2 text-fg-muted",
+    accent: "bg-accent-soft text-accent",
+    ok: "bg-[#14331f] text-ok",
+    warn: "bg-[#33280f] text-warn",
+    danger: "bg-[#331414] text-danger",
+  };
+
+  // Jika value berupa angka, animasikan dengan CountUp.
+  const numeric = typeof value === "number";
+  const display = numeric ? <CountUp value={value as number} /> : value;
+
   return (
-    <div className="rounded-lg border border-bg-border bg-bg-panel p-4">
-      <div className="flex items-center gap-2 text-fg-dim">
-        <Icon className="h-4 w-4" />
-        <span className="text-2xs font-medium uppercase tracking-wide">{label}</span>
+    <div className="anim-fade-up group rounded-lg border border-bg-border bg-bg-panel p-4 transition-all hover:border-fg-dim hover:shadow-[0_0_20px_-6px_rgba(192,57,43,0.25)]">
+      <div className="flex items-center gap-2">
+        <div className={`${iconBg[tone]} h-7 w-7 rounded-md flex items-center justify-center transition-transform group-hover:scale-110`}>
+          <Icon className="h-4 w-4" />
+        </div>
+        <span className="text-2xs font-medium uppercase tracking-wide text-fg-dim">{label}</span>
       </div>
-      <div className="mt-2 text-2xl font-bold tabular-nums">{value}</div>
+      <div className={`mt-2 text-2xl font-bold tabular-nums ${toneColor[tone]}`}>{display}</div>
       {hint && <div className="mt-1 text-2xs text-fg-dim">{hint}</div>}
-      <div className={toneColor[tone] + " sr-only"} />
     </div>
   );
 }
@@ -74,7 +88,7 @@ export function Card({
   action?: ReactNode;
 }) {
   return (
-    <section className={"rounded-lg border border-bg-border bg-bg-panel " + (className ?? "")}>
+    <section className={"anim-fade-up rounded-lg border border-bg-border bg-bg-panel " + (className ?? "")}>
       {title && (
         <div className="flex items-center justify-between border-b border-bg-border px-4 py-3">
           <h2 className="text-sm font-semibold">{title}</h2>
