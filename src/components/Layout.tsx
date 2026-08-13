@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Users,
   Server,
+  Activity,
   ShieldCheck,
   LogOut,
   Menu,
@@ -20,6 +21,7 @@ const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/users", label: "Users", icon: Users },
   { href: "/servers", label: "Servers", icon: Server },
+  { href: "/analytics", label: "Analytics", icon: Activity },
 ];
 
 export function RootLayout({ children }: { children: ReactNode }) {
