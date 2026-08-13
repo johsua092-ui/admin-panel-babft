@@ -148,8 +148,11 @@ function UserRow({ u, expanded, onToggle }: { u: UserRecord; expanded: boolean; 
               </div>
             )}
             <div className="min-w-0 leading-tight">
-              <div className="truncate text-xs font-medium">{u.displayName || "—"}</div>
-              <div className="truncate text-2xs text-fg-dim">{u.email}</div>
+              <div className="flex items-center gap-1.5 truncate text-xs font-medium">
+                {u.displayName || (u.isGuest ? "Guest" : "—")}
+                {u.isGuest && <Badge tone="info">Guest</Badge>}
+              </div>
+              <div className="truncate text-2xs text-fg-dim">{u.email || (u.isGuest ? "anonim" : "")}</div>
             </div>
           </div>
         </td>

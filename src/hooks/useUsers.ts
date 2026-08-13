@@ -41,6 +41,7 @@ function normalize(id: string, raw: unknown): UserRecord {
   return {
     id,
     email: asStr(o.email),
+    isGuest: asBool(o.isGuest),
     displayName: asStr(o.displayName),
     photoURL: asStr(o.photoURL),
     lastLoginAt: asNum(o.lastLoginAt),

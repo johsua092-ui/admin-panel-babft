@@ -2,6 +2,7 @@
 export type UserRecord = {
   id: string;
   email: string | null;
+  isGuest?: boolean;
   displayName?: string | null;
   photoURL?: string | null;
   // login / online
