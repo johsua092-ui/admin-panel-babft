@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHash } from "crypto";
 import { convexQuery, convexMutation } from "@/lib/convexClient";
+import { requireAdmin } from "@/lib/authGuard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,14 +12,23 @@ function expectedHash(): string | null {
   return createHash("sha256").update(code).digest("hex");
 }
 
-export async function GET() {
+async function readLocked(): Promise<boolean> {
   try {
-    const status = await convexQuery<{ locked: boolean }>("settings:getLockdownStatus", {});
-    return NextResponse.json({ locked: status.locked });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const s = await convexQuery<{ locked: boolean }>("settings:getLockdownStatus", {});
+    return s.locked === true;
+  } catch {
+    return false;
   }
+}
+
+export async function GET(req: Request) {
+  let owner = false;
+  try {
+    await requireAdmin(req.headers.get("authorization"));
+    owner = true;
+  } catch {}
+  const locked = await readLocked();
+  return NextResponse.json({ locked, owner });
 }
 
 export async function POST(req: Request) {

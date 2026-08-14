@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { data } from "@/lib/data";
+import { isLocked } from "@/lib/lockdownGuard";
+import { requireAdmin } from "@/lib/authGuard";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export async function GET(_req: Request, { params }: { params: { id: string } }) {

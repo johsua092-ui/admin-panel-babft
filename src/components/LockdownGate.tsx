@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 function BlankUnlock({ onDone }: { onDone: () => void }) {
   const [code, setCode] = useState("");
+  const { getIdToken } = useAuth();
 
   async function submit(e?: React.FormEvent) {
     e?.preventDefault();
+    const token = await getIdToken();
     const r = await fetch("/api/lockdown", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify({ code, locked: false }),
     }).catch(() => null);
     if (!r) return;
@@ -36,28 +39,42 @@ function BlankUnlock({ onDone }: { onDone: () => void }) {
   );
 }
 
+function BlankBlock() {
+  return <div className="flex min-h-screen items-center justify-center bg-bg-base text-fg-dim" />;
+}
+
 export function LockdownGate({ children }: { children: ReactNode }) {
+  const { admin, getIdToken } = useAuth();
   const [locked, setLocked] = useState<boolean | null>(null);
+  const [isOwner, setIsOwner] = useState(true);
 
   useEffect(() => {
     let cancel = false;
-    (async () => {
+    async function check() {
       try {
-        const r = await fetch("/api/lockdown");
+        const token = await getIdToken();
+        const r = await fetch("/api/lockdown", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (!r.ok) return;
         const j = await r.json();
-        if (!cancel) setLocked(j.locked === true);
+        if (!cancel) {
+          setLocked(j.locked === true);
+          if (typeof j.owner === "boolean") setIsOwner(j.owner);
+        }
       } catch (_) {}
-    })();
-    return () => { cancel = true; };
-  }, []);
+    }
+    check();
+    const t = setInterval(check, 3000);
+    return () => { cancel = true; clearInterval(t); };
+  }, [getIdToken]);
 
   if (locked === null) {
     return <div className="flex min-h-screen items-center justify-center bg-bg-base text-fg-muted" />;
   }
 
   if (locked) {
-    return <BlankUnlock onDone={() => setLocked(false)} />;
+    return isOwner ? <BlankUnlock onDone={() => setLocked(false)} /> : <BlankBlock />;
   }
 
   return <>{children}</>;
