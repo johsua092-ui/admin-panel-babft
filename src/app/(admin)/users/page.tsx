@@ -5,7 +5,7 @@ import {
   MapPin, Clock3, Wifi, ShieldAlert, Search, ChevronUp, ChevronDown,
   Circle, Monitor, Smartphone, Tablet, MonitorSmartphone, Navigation,
   Home, Cpu, Fingerprint, Languages, Trash2, Download, History,
-  Ban, ShieldCheck, ShieldX,
+  Ban, ShieldCheck, ShieldX, Globe,
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
 import { useAuth } from "@/context/AuthContext";
@@ -365,6 +365,46 @@ function UserDetail({ u }: { u: UserRecord }) {
         <div className="mt-2 flex items-center gap-1.5 text-2xs text-fg-dim">
           <Clock3 className="h-3 w-3" /> {u.timezone || "—"} · online terakhir {fmtRelative(u.lastOnlineAt)}
         </div>
+      </div>
+
+      {/* Jaringan & Sumber */}
+      <div className="rounded border border-bg-border bg-bg-panel p-3">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-fg-muted">
+          <Wifi className="h-3.5 w-3.5" /> Jaringan & Sumber
+        </div>
+        <div className="flex flex-col gap-1 text-xs">
+          <Row icon={Wifi} label="IP" value={u.ipAddress || "—"} />
+          <Row icon={Cpu} label="ISP" value={u.isp || "—"} />
+          <Row icon={Globe} label="ASN" value={u.asn ? `${u.asn}${u.asOrg ? " · " + u.asOrg : ""}` : "—"} />
+          {u.flaggedAsVpn && (
+            <div className="flex items-center gap-1.5 text-danger">
+              <ShieldAlert className="h-3.5 w-3.5" /> {u.vpnProvider || "VPN/Proxy terdeteksi"}
+            </div>
+          )}
+          {u.isHosting && !u.flaggedAsVpn && (
+            <div className="flex items-center gap-1.5 text-warn">
+              <ShieldAlert className="h-3.5 w-3.5" /> Hosting/datacenter
+            </div>
+          )}
+        </div>
+        {(u.searchEngine || u.referrer || u.utmSource) && (
+          <div className="mt-2 border-t border-bg-border pt-2 flex flex-col gap-1 text-2xs">
+            {u.searchEngine && (
+              <div className="flex items-center gap-1.5">
+                <Search className="h-3 w-3 shrink-0 text-fg-dim" />
+                <span className="text-fg-muted">SE:</span>
+                <span className="font-medium text-fg-primary">{u.searchEngine}</span>
+                {u.searchQuery && <span className="truncate text-fg-dim">"{u.searchQuery}"</span>}
+              </div>
+            )}
+            {u.referrer && <div className="truncate text-fg-dim">Ref: {u.referrer}</div>}
+            {u.utmSource && (
+              <div className="truncate text-fg-dim">
+                UTM: {[u.utmSource, u.utmMedium, u.utmCampaign].filter(Boolean).join(" / ")}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Perangkat */}

@@ -43,6 +43,15 @@ export type UserRecord = {
   isHosting?: boolean;
   vpnProvider?: string | null;
   asn?: string | null;
+  asOrg?: string | null;
+  mobile?: boolean;
+  referrer?: string | null;
+  searchEngine?: string | null;
+  searchQuery?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  landingPath?: string | null;
   banned?: boolean;
   bannedAt?: number | null;
   bannedReason?: string | null;
