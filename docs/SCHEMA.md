@@ -1,51 +1,44 @@
-# Skema Firestore — Admin Panel BABFT
+# Skema Firestore — Panel Penjual Sayur
 
-Dokumen ini menjelaskan struktur koleksi Firestore yang dibaca oleh admin panel.
+Dokumen ini menjelaskan struktur koleksi Firestore yang dibaca panel.
 Semua nama koleksi bisa di-override lewat environment variable (lihat `.env.example`),
 sehingga tidak ada yang di-hardcode di kode.
 
-## Koleksi 1: `admins` (whitelist admin)
+## Koleksi 1: `admins` (whitelist anggota)
 
-Ini adalah **pintu keamanan** panel. Hanya akun Google yang UID-nya ada sebagai
+Ini adalah pintu keamanan panel. Hanya akun Google yang UID-nya ada sebagai
 document di koleksi ini yang boleh masuk.
 
-> Ada **dua sumber verifikasi** yang dipakai panel, berurutan:
-> 1. **Firestore `admins`** (kunci utama, bisa dikelola live) — document id = UID.
-> 2. **Env `NEXT_PUBLIC_ADMIN_EMAILS`** (fallback cepat) — daftar email koma-separated.
+> Ada dua sumber verifikasi yang dipakai panel, berurutan:
+> 1. Firestore `admins` (kunci utama, bisa dikelola live) — document id = UID.
+> 2. Env `NEXT_PUBLIC_ADMIN_EMAILS` (fallback cepat) — daftar email koma-separated.
 >
 > Tidak ada email/UID yang di-hardcode di kode. Untuk produksi, andalkan Firestore.
 
-**Admin saat ini (2 akun):**
-
-| Email | Role |
-| --- | --- |
-| `johsua092@gmail.com` | owner |
-| `aremakonveksi@gmail.com` | admin |
-
-Menggunakan **UID Firebase Auth** sebagai document ID (bukan email), agar unik & aman.
+Menggunakan UID Firebase Auth sebagai document ID (bukan email), agar unik & aman.
 
 ```
 admins/{uid}
 {
-  "email": "admin@example.com",   // email Google owner/admin
-  "role": "owner",                // "owner" | "admin" | "moderator"
-  "active": true,                 // false = nonaktif (ditolak masuk)
-  "createdAt": 1720000000000      // epoch ms (opsional)
+  "email": "anggota@example.com",
+  "role": "owner",
+  "active": true,
+  "createdAt": 1720000000000
 }
 ```
 
 > Env override: `NEXT_PUBLIC_ADMINS_COLLECTION` (default `admins`).
 
-### Cara mendaftarkan admin
-1. User login Google sekali (akan ditolak, karena belum terdaftar — ini aman, dia langsung sign-out).
-2. Owner mengambil UID user tersebut (lihat di Firebase Auth console).
+### Cara mendaftarkan anggota
+1. User login Google sekali (ditolak karena belum terdaftar, lalu langsung sign-out).
+2. Owner mengambil UID user tersebut (lihat Firebase Auth console).
 3. Owner membuat document `admins/{uid}` dengan field di atas.
 
-Atau gunakan `scripts/seed-admin.mjs` (butuh service account — lihat bawah).
+Atau gunakan `scripts/seed-admins.mjs` (butuh service account).
 
 ## Koleksi 2: `users` (data user yang dipantau)
 
-Ini adalah data aktivitas user: login history, region, timezone, IP, deteksi VPN.
+Ini adalah data aktivitas user: riwayat login, region, timezone, IP, deteksi VPN.
 
 ```
 users/{uid atau id}
@@ -55,26 +48,22 @@ users/{uid atau id}
   "displayName": "Nama User",
   "photoURL": "https://...",
 
-  // login / online
-  "lastLoginAt": 1720000000000,   // epoch ms — login terakhir
-  "firstLoginAt": 1710000000000,  // epoch ms — login pertama
-  "loginCount": 42,               // total login
-  "online": true,                 // sedang online (true/false)
-  "lastOnlineAt": 1720000000000,  // epoch ms — terakhir terlihat online
+  "lastLoginAt": 1720000000000,
+  "firstLoginAt": 1710000000000,
+  "loginCount": 42,
+  "online": true,
+  "lastOnlineAt": 1720000000000,
 
-  // geo / network
-  "region": "Indonesia",          // nama negara/region
-  "countryCode": "ID",            // ISO 3166-1 alpha-2
-  "timezone": "Asia/Jakarta",     // timezone negara
-  "ipAddress": "103.x.x.x",       // alamat IP
+  "region": "Indonesia",
+  "countryCode": "ID",
+  "timezone": "Asia/Jakarta",
+  "ipAddress": "103.x.x.x",
 
-  // VPN detection
-  "previousRegion": "Indonesia",  // region sebelumnya
-  "regionChangedAt": 1720000000000, // kapan region berubah
-  "regionChangeCount": 1,         // berapa kali ganti region
-  "flaggedAsVpn": true            // otomatis true jika region berubah negara
+  "previousRegion": "Indonesia",
+  "regionChangedAt": 1720000000000,
+  "regionChangeCount": 1,
+  "flaggedAsVpn": true,
 
-  // meta
   "createdAt": 1710000000000,
   "updatedAt": 1720000000000
 }
@@ -84,15 +73,14 @@ users/{uid atau id}
 
 ## Logika Deteksi VPN
 
-Panel (dan logika app-mu) menentukan `flaggedAsVpn` dengan aturan:
+Panel (dan logika app) menentukan `flaggedAsVpn` dengan aturan:
 - User tercatat `region` = negara A.
 - Pada login/aktivitas berikutnya, region berubah ke negara B (berbeda).
 - Maka: `previousRegion` diisi region lama, `regionChangeCount` bertambah,
   `regionChangedAt` diisi, dan `flaggedAsVpn = true`.
 
-Ini adalah **heuristik sederhana** (perubahan region = indikasi VPN). Untuk akurasi
-lebih tinggi, kombinasikan dengan deteksi IP (ASN dari IP — apakah milik datacenter/VPN),
-yang bisa ditambahkan lewat Cloud Function.
+Ini heuristik sederhana (perubahan region = indikasi VPN). Untuk akurasi lebih tinggi,
+kombinasikan dengan deteksi IP (ASN dari IP — apakah milik datacenter/VPN).
 
 ## Menjalankan seed (opsional)
 

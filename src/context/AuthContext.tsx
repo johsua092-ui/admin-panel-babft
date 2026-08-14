@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setStatus("denied");
           return;
         }
-        setAdmin({ email: data.email ?? email, role: data.role ?? "admin" });
+        setAdmin({ email: data.email ?? email, role: data.role ?? "anggota" });
         setStatus("authenticated");
         return;
       }
