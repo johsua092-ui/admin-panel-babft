@@ -1,21 +1,18 @@
-// GET /api/traffic — data traffic internet dari Vercel Web Analytics.
-// Menampilkan pageviews & visitors untuk deteksi lonjakan traffic (DDoS).
-
 import { NextResponse } from "next/server";
+import { guard, isResponse } from "@/lib/apiGuard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
+  const g = await guard(req);
+  if (isResponse(g)) return g;
   const token = process.env.VERCEL_TOKEN;
   const teamId = process.env.VERCEL_TEAM_ID;
   const projectId = process.env.VERCEL_PROJECT_ID;
 
   if (!token || !projectId) {
-    return NextResponse.json(
-      { error: "VERCEL_TOKEN / VERCEL_PROJECT_ID belum diset." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "VERCEL_TOKEN / VERCEL_PROJECT_ID belum diset." }, { status: 500 });
   }
 
   try {
@@ -26,34 +23,25 @@ export async function GET() {
     const params = new URLSearchParams({ projectId });
     if (teamId) params.set("teamId", teamId);
 
-    // Harian (24 jam terakhir)
     const dayParams = new URLSearchParams(params);
     dayParams.set("since", String(dayAgo));
     dayParams.set("until", String(now));
 
-    // Mingguan (7 hari)
     const weekParams = new URLSearchParams(params);
     weekParams.set("since", String(weekAgo));
     weekParams.set("until", String(now));
 
     const [dayRes, weekRes] = await Promise.all([
-      fetch(`https://api.vercel.com/v1/query/web-analytics/visits/count?${dayParams}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
-      fetch(`https://api.vercel.com/v1/query/web-analytics/visits/count?${weekParams}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      }),
+      fetch(`https://api.vercel.com/v1/query/web-analytics/visits/count?${dayParams}`, { headers: { Authorization: `Bearer ${token}` } }),
+      fetch(`https://api.vercel.com/v1/query/web-analytics/visits/count?${weekParams}`, { headers: { Authorization: `Bearer ${token}` } }),
     ]);
 
     const dayJson = await dayRes.json().catch(() => ({}));
     const weekJson = await weekRes.json().catch(() => ({}));
 
-    const dayData = dayJson.data || { pageviews: 0, visitors: 0 };
-    const weekData = weekJson.data || { pageviews: 0, visitors: 0 };
-
     return NextResponse.json({
-      day: dayData,
-      week: weekData,
+      day: dayJson.data || { pageviews: 0, visitors: 0 },
+      week: weekJson.data || { pageviews: 0, visitors: 0 },
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

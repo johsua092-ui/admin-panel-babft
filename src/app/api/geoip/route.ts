@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { lookupIp, lookupMany } from "@/lib/geoip";
+import { guard, isResponse } from "@/lib/apiGuard";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+  const g = await guard(req);
+  if (isResponse(g)) return g;
   const url = new URL(req.url);
   const ipParam = (url.searchParams.get("ip") || "").trim();
   const batchParam = (url.searchParams.get("ips") || "").trim();

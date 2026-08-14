@@ -21,11 +21,24 @@ const whitelist = () =>
 
 export type AuthedAdmin = { uid: string; email: string };
 
-export async function requireAdmin(authorization: string | null): Promise<AuthedAdmin> {
-  if (!authorization || !authorization.startsWith("Bearer ")) {
-    throw new Error("UNAUTHORIZED");
+function tokenFromCookie(cookieHeader: string | null): string | null {
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    const key = part.slice(0, eq).trim();
+    if (key === "__token") return part.slice(eq + 1).trim();
   }
-  const token = authorization.slice("Bearer ".length).trim();
+  return null;
+}
+
+export async function requireAdmin(authorization: string | null, cookieHeader?: string | null): Promise<AuthedAdmin> {
+  let token: string;
+  if (authorization && authorization.startsWith("Bearer ")) {
+    token = authorization.slice("Bearer ".length).trim();
+  } else {
+    token = tokenFromCookie(cookieHeader ?? null) ?? "";
+  }
   if (!token) throw new Error("UNAUTHORIZED");
   let decoded;
   try {

@@ -119,8 +119,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!u) {
         setAdmin(null);
         setStatus("unauthenticated");
+        document.cookie = "__token=; path=/; max-age=0";
         return;
       }
+      try {
+        const tok = await u.getIdToken();
+        document.cookie = `__token=${tok}; path=/; max-age=3600; samesite=lax`;
+      } catch (_) {}
       await verifyAdmin(u);
     });
     return () => unsub();
@@ -157,6 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    document.cookie = "__token=; path=/; max-age=0";
     await firebaseSignOut(auth);
     setUser(null);
     setAdmin(null);

@@ -1,6 +1,7 @@
 // GET /api/analytics/export — download CSV semua event analitik.
 
 import { NextResponse } from "next/server";
+import { guard, isResponse } from "@/lib/apiGuard";
 import { getAdminDb } from "@/lib/adminFirestore";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,9 @@ function csvEscape(v: unknown): string {
   return s;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const g = await guard(req);
+  if (isResponse(g)) return g;
   try {
     const db = getAdminDb();
     const col = process.env.NEXT_PUBLIC_ANALYTICS_COLLECTION || "analytics";
