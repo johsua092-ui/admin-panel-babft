@@ -1,19 +1,23 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { assertAuthed } from "./_internalAuth";
 
 const PAGE_SIZE = 500;
+const tokenArg = { token: v.optional(v.string()) };
 
 export const logAdminLogin = mutation({
-  args: { uid: v.string(), email: v.string(), role: v.string(), timestamp: v.float64() },
+  args: { uid: v.string(), email: v.string(), role: v.string(), timestamp: v.float64(), ...tokenArg },
   handler: async (ctx, args) => {
+    assertAuthed(args.token);
     await ctx.db.insert("adminLogins", { uid: args.uid, email: args.email, role: args.role, timestamp: args.timestamp });
     return { ok: true };
   },
 });
 
 export const getAdminLogins = query({
-  args: {},
-  handler: async (ctx) => {
+  args: tokenArg,
+  handler: async (ctx, args) => {
+    assertAuthed(args.token);
     const logs = await ctx.db.query("adminLogins").withIndex("by_timestamp").order("desc").take(PAGE_SIZE);
     const byEmail = new Map<string, { email: string; role: string; count: number; last: number; first: number }>();
     for (const l of logs) {

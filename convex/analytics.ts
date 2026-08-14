@@ -1,11 +1,14 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { assertAuthed } from "./_internalAuth";
 
 const PAGE_SIZE = 500;
+const tokenArg = { token: v.optional(v.string()) };
 
 export const getAnalyticsEvents = query({
-  args: {},
-  handler: async (ctx) => {
+  args: tokenArg,
+  handler: async (ctx, args) => {
+    assertAuthed(args.token);
     const rows = (await ctx.db.query("analytics").withIndex("by_timestamp").order("desc").take(PAGE_SIZE)) as unknown as Array<Record<string, any>>;
     const events = rows.map((r) => ({ id: r._id, ...r.data, ...r })) as Array<Record<string, any>>;
     const now = Date.now();
@@ -32,8 +35,9 @@ export const getAnalyticsEvents = query({
 });
 
 export const upsertAnalyticsEvent = mutation({
-  args: { eventId: v.string(), timestamp: v.optional(v.union(v.float64(), v.null())), kind: v.optional(v.string()), deviceId: v.optional(v.string()), data: v.any() },
+  args: { eventId: v.string(), timestamp: v.optional(v.union(v.float64(), v.null())), kind: v.optional(v.string()), deviceId: v.optional(v.string()), data: v.any(), ...tokenArg },
   handler: async (ctx, args) => {
+    assertAuthed(args.token);
     const existing = await ctx.db.query("analytics").collect().then((rows) => rows.find((r) => (r.data as any)?.eventId === args.eventId));
     if (existing) { await ctx.db.patch(existing._id, { timestamp: args.timestamp ?? null, kind: args.kind, deviceId: args.deviceId, data: args.data }); return { ok: true, updated: true }; }
     await ctx.db.insert("analytics", { timestamp: args.timestamp ?? null, kind: args.kind, deviceId: args.deviceId, data: args.data });

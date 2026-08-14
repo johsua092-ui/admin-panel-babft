@@ -18,7 +18,7 @@ export default defineSchema({
     countryCode: v.optional(v.union(v.string(), v.null())),
     regionName: v.optional(v.union(v.string(), v.null())),
     isp: v.optional(v.union(v.string(), v.null())),
-    timezone: v.optional(v.union(v.string(), v.null())),
+    timezone: v.optional(v.any()),
     ipAddress: v.optional(v.union(v.string(), v.null())),
     latitude: v.optional(v.union(v.float64(), v.null())),
     longitude: v.optional(v.union(v.float64(), v.null())),
