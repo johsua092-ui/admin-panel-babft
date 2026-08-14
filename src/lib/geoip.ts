@@ -36,19 +36,38 @@ function isPrivate(ip: string): boolean {
 }
 
 const VPN_KEYWORDS = [
-  "vpn", "proxy", "hosting", "host", "datacenter", "data center", "cloud",
+  "vpn", "proxy", "hosting", "datacenter", "data center", "cloud", "vps",
   "m247", "digitalocean", "vultr", "linode", "ovh", "hetzner", "contabo",
   "colo", "leaseweb", "choopa", "nforce", "psychz", "sharktech", "async",
-  "buyvm", "frantech", "quadranet", "porn", "rdp", "dedicated", "server",
+  "buyvm", "frantech", "quadranet", "dedicated", "server", "colo crossing",
   "aws", "amazon", "google cloud", "gcp", "azure", "oracle", "alibaba",
   "nordvpn", "expressvpn", "surfshark", "protonvpn", "private internet",
   "mullvad", "cyberghost", "ipvanish", "windscribe", "tunnelbear",
+  "hotspot shield", "hidemyass", "purevpn", "vyprvpn", "zenmate",
+  "idcloudhost", "biznet", "exabytes", "niagahoster", "qwords", "dewabiz",
+  "rumahweb", "masterweb", "indowebsite", "jetorbit", "mochahost", "hostinger",
+  "namecheap", "godaddy", "cloudflare", "fastly", "akamai", "cdn77",
+  "stackpath", "quantil", "zenlayer", "psychz", "constant", "ramnode",
+  "buyvm", "chunkhost", "mnzhost", "iix", "openixp", "apjii", "cbn", "mora",
+  "infinys", "radnet", "neuviz", "firstmedia", "mylink",
 ];
 
-function detectProxy(rec: { org?: string; isp?: string }): { proxy: boolean; hosting: boolean } {
-  const hay = `${rec.org ?? ""} ${rec.isp ?? ""}`.toLowerCase();
-  const proxy = VPN_KEYWORDS.some((k) => hay.includes(k));
-  return { proxy, hosting: proxy };
+const HOSTING_KEYWORDS = [
+  "hosting", "datacenter", "data center", "cloud", "vps", "dedicated",
+  "server", "colo", "digitalocean", "vultr", "linode", "ovh", "hetzner",
+  "contabo", "leaseweb", "choopa", "nforce", "psychz", "sharktech", "async",
+  "buyvm", "frantech", "quadranet", "aws", "amazon", "azure", "oracle",
+  "alibaba", "google cloud", "gcp", "hostinger", "idcloudhost", "biznet",
+  "exabytes", "niagahoster", "qwords", "dewabiz", "rumahweb", "masterweb",
+  "indowebsite", "jetorbit", "namecheap", "godaddy", "cloudflare", "fastly",
+  "akamai", "cdn77", "stackpath", "zenlayer", "ramnode", "constant",
+];
+
+function detectProxy(rec: { org?: string; isp?: string; asOrg?: string; asn?: string }): { proxy: boolean; hosting: boolean } {
+  const hay = `${rec.org ?? ""} ${rec.isp ?? ""} ${rec.asOrg ?? ""}`.toLowerCase();
+  const hosting = HOSTING_KEYWORDS.some((k) => hay.includes(k));
+  const proxy = VPN_KEYWORDS.some((k) => hay.includes(k)) || hosting;
+  return { proxy, hosting };
 }
 
 type Raw = {
@@ -69,7 +88,7 @@ function toRecord(r: Raw): GeoIpRecord {
   if (!r || r.success !== true) return { status: "fail" };
   const org = r.connection?.org ?? "";
   const isp = r.connection?.isp ?? "";
-  const { proxy, hosting } = detectProxy({ org, isp });
+  const { proxy, hosting } = detectProxy({ org, isp, asOrg: org });
   return {
     status: "success",
     ip: r.ip,
