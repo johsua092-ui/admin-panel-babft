@@ -39,14 +39,9 @@ function BlankUnlock({ onDone }: { onDone: () => void }) {
   );
 }
 
-function BlankBlock() {
-  return <div className="flex min-h-screen items-center justify-center bg-bg-base text-fg-dim" />;
-}
-
 export function LockdownGate({ children }: { children: ReactNode }) {
-  const { admin, getIdToken } = useAuth();
-  const [locked, setLocked] = useState<boolean | null>(null);
-  const [isOwner, setIsOwner] = useState(true);
+  const { getIdToken } = useAuth();
+  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
     let cancel = false;
@@ -58,10 +53,7 @@ export function LockdownGate({ children }: { children: ReactNode }) {
         });
         if (!r.ok) return;
         const j = await r.json();
-        if (!cancel) {
-          setLocked(j.locked === true);
-          if (typeof j.owner === "boolean") setIsOwner(j.owner);
-        }
+        if (!cancel) setLocked(j.locked === true);
       } catch (_) {}
     }
     check();
@@ -69,13 +61,7 @@ export function LockdownGate({ children }: { children: ReactNode }) {
     return () => { cancel = true; clearInterval(t); };
   }, [getIdToken]);
 
-  if (locked === null) {
-    return <div className="flex min-h-screen items-center justify-center bg-bg-base text-fg-muted" />;
-  }
-
-  if (locked) {
-    return isOwner ? <BlankUnlock onDone={() => setLocked(false)} /> : <BlankBlock />;
-  }
+  if (locked) return <BlankUnlock onDone={() => setLocked(false)} />;
 
   return <>{children}</>;
 }
