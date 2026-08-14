@@ -42,13 +42,13 @@ function mergeGeo(u: UserLike, g: GeoIpRecord | undefined): UserLike {
   if (out.countryCode == null && g.countryCode) out.countryCode = g.countryCode;
   if (out.isp == null && g.isp) out.isp = g.isp;
   if (out.timezone == null && g.timezone) out.timezone = g.timezone;
-  if (out.postal == null && g.zip) out.postal = g.zip;
-  if (out.asn == null && g.as) out.asn = g.as;
-  if (out.asOrg == null && g.asname) out.asOrg = g.asname;
+  if (out.postal == null && g.postal) out.postal = g.postal;
+  if (out.asn == null && g.asn) out.asn = g.asn;
+  if (out.asOrg == null && g.asOrg) out.asOrg = g.asOrg;
   out.isProxy = g.proxy === true;
   out.isHosting = g.hosting === true;
   out.mobile = g.mobile === true;
-  if (g.proxy === true || g.hosting === true) { out.flaggedAsVpn = true; out.vpnProvider = g.asname || g.org || g.isp || "VPN/Proxy"; }
+  if (g.proxy === true || g.hosting === true) { out.flaggedAsVpn = true; out.vpnProvider = g.asOrg || g.org || g.isp || "VPN/Proxy"; }
   return out;
 }
 
