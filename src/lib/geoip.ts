@@ -54,7 +54,7 @@ async function fetchBatch(ips: string[]): Promise<GeoIpRecord[]> {
     "city", "zip", "lat", "lon", "timezone", "isp", "org", "as", "asname",
     "query", "proxy", "hosting", "mobile",
   ];
-  const url = `http://ip-api.com/batch/${ips.join(",")}?fields=${fields.join(",")}&lang=en`;
+  const url = `https://ip-api.com/batch/${ips.join(",")}?fields=${fields.join(",")}&lang=en`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`ip-api error ${res.status}`);
   const data = (await res.json()) as GeoIpRecord[] | GeoIpRecord;
