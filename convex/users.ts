@@ -16,7 +16,7 @@ export const getUsers = query({
     const all = await ctx.db.query("users").collect();
     all.sort((a, b) => ((b.lastLoginAt ?? 0) - (a.lastLoginAt ?? 0)));
     const users = all.slice(0, PAGE_SIZE);
-    return users.map((u) => ({ ...u, id: u.id ?? u._id, _version: 2 }));
+    return users.map((u) => ({ ...u, id: u.id ?? u._id }));
   },
 });
 
@@ -56,8 +56,25 @@ export const upsertUser = mutation({
   handler: async (ctx, args) => {
     assertAuthed(args.token);
     const users = await ctx.db.query("users").collect();
-    const target = users.find((u) => u.id === args.id || u._id === args.id);
-    if (target) { await ctx.db.patch(target._id, { ...args.data, id: args.id }); return { ok: true, id: target._id, updated: true }; }
+    const d = (args.data ?? {}) as Record<string, unknown>;
+    const uid = typeof d.uid === "string" && d.uid ? d.uid : null;
+    const deviceId = typeof d.deviceId === "string" && d.deviceId ? d.deviceId : null;
+    const ipAddress = typeof d.ipAddress === "string" && d.ipAddress ? d.ipAddress : null;
+    const region = typeof d.region === "string" && d.region ? d.region : null;
+
+    // Match berurutan: id -> uid -> deviceId+ipAddress+region (dedup anti duplikat)
+    let target = users.find((u) => u.id === args.id || u._id === args.id);
+    if (!target && uid) target = users.find((u) => u.uid === uid && !u.isGuest);
+    if (!target && deviceId && ipAddress && region) {
+      target = users.find((u) =>
+        u.deviceId === deviceId && u.ipAddress === ipAddress && u.region === region
+      );
+    }
+
+    if (target) {
+      await ctx.db.patch(target._id, { ...args.data, id: target.id ?? args.id });
+      return { ok: true, id: target._id, updated: true };
+    }
     const newId = await ctx.db.insert("users", { ...args.data, id: args.id });
     return { ok: true, id: newId, updated: false };
   },
