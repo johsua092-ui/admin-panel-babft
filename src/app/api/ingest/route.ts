@@ -76,7 +76,7 @@ function normalizeUser(p: Record<string, unknown>): Record<string, unknown> {
   out.countryCode = str("countryCode");
   out.regionName = str("regionName");
   out.isp = str("isp");
-  out.timezone = str("timezone");
+  out.timezone = typeof p.timezone === "string" ? p.timezone : str("timezone") ?? null;
   out.ipAddress = str("ipAddress");
   out.latitude = num(p.latitude);
   out.longitude = num(p.longitude);
@@ -146,7 +146,7 @@ export async function POST(req: Request) {
       const deviceId = typeof b.deviceId === "string" ? b.deviceId : "";
       if (!id && !deviceId) return NextResponse.json({ ok: false, error: "missing id" }, { status: 400, headers });
       const ts = num(b.timestamp) ?? Date.now();
-      const r = await safeConvex(() => convexMutation("users:upsertUser", { id: id || deviceId, data: { online: true, lastOnlineAt: ts } }));
+      const r = await safeConvex(() => convexMutation("users:upsertUser", { id: id || deviceId, data: { online: true, lastOnlineAt: ts, timezone: null } }));
       return NextResponse.json(r, { headers });
     }
 
