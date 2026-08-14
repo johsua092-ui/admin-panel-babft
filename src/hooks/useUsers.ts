@@ -129,7 +129,7 @@ export function useUsers(limitCount: number = 500) {
 
     async function loop() {
       await load();
-      if (!cancelled) timer = setTimeout(loop, 5000);
+      if (!cancelled) timer = setTimeout(loop, 2000);
     }
     loop();
 

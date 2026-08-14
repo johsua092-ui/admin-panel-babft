@@ -109,7 +109,7 @@ export default function DashboardPage() {
           icon={UserCheck}
           label="Online Sekarang"
           value={stats.online}
-          hint="status online:true"
+          hint="aktif < 1 menit"
           tone="ok"
         />
         <StatCard
