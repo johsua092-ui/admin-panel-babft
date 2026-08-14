@@ -85,7 +85,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     load();
     loadTraffic();
-    const t = setInterval(load, 8000);
+    const t = setInterval(load, 60000);
     return () => clearInterval(t);
   }, []);
 

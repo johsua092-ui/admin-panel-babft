@@ -3,11 +3,17 @@
 
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/adminFirestore";
+import { getCached, setCached } from "@/lib/apiCache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+const TTL = 30000; // 30 detik
+
 export async function GET() {
+  const cached = getCached<any>("analytics-full");
+  if (cached) return NextResponse.json(cached);
+
   try {
     const db = getAdminDb();
     const colName = process.env.NEXT_PUBLIC_ANALYTICS_COLLECTION || "analytics";
@@ -76,7 +82,7 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({
+    const result = {
       events,
       summary: {
         total: events.length,
@@ -88,7 +94,9 @@ export async function GET() {
         uniqueDevices: uniqueAnon,
       },
       suspicious,
-    });
+    };
+    setCached("analytics-full", result, TTL);
+    return NextResponse.json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 500 });

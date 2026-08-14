@@ -50,7 +50,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
       } catch (_) {}
     }
     poll();
-    const t = setInterval(poll, 10000);
+    const t = setInterval(poll, 60000);
     return () => clearInterval(t);
   }, []);
 

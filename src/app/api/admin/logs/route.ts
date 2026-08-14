@@ -2,9 +2,12 @@
 
 import { NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/adminFirestore";
+import { getCached, setCached } from "@/lib/apiCache";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+
+const TTL = 60000; // 60 detik (login admin jarang)
 
 type AdminLogin = {
   id: string;
@@ -15,6 +18,9 @@ type AdminLogin = {
 };
 
 export async function GET() {
+  const cached = getCached<any>("admin-logs");
+  if (cached) return NextResponse.json(cached);
+
   try {
     const db = getAdminDb();
     const snap = await db
@@ -40,7 +46,9 @@ export async function GET() {
 
     const admins = Array.from(byEmail.values()).sort((a, b) => b.last - a.last);
 
-    return NextResponse.json({ logs, admins });
+    const result = { logs, admins };
+    setCached("admin-logs", result, TTL);
+    return NextResponse.json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return NextResponse.json({ error: msg }, { status: 500 });

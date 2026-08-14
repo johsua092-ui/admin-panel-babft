@@ -45,7 +45,7 @@ export default function DashboardPage() {
         }
         setDailyTrend(Array.from(map.entries()).map(([label, count]) => ({ label, count })));
       } catch (_) {}
-    }, 8000);
+    }, 60000);
     return () => clearInterval(t);
   }, []);
 
