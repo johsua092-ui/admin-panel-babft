@@ -16,7 +16,7 @@ export const getUsers = query({
     const all = await ctx.db.query("users").collect();
     all.sort((a, b) => ((b.lastLoginAt ?? 0) - (a.lastLoginAt ?? 0)));
     const users = all.slice(0, PAGE_SIZE);
-    return users.map((u) => ({ ...u, id: u.id ?? u._id }));
+    return users.map((u) => ({ ...u, id: u.id ?? u._id, _version: 2 }));
   },
 });
 
