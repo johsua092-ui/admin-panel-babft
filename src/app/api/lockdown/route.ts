@@ -9,7 +9,12 @@ export const runtime = "nodejs";
 function expectedHash(): string | null {
   const code = process.env.LOCKDOWN_CODE;
   if (!code) return null;
-  return createHash("sha256").update(code).digest("hex");
+  const trimmed = code.trim();
+  // Dukung dua mode:
+  // 1) env berisi HASH SHA-256 (64 hex) -> langsung pakai (kode asli TIDAK tersimpan).
+  // 2) env berisi plaintext (fallback/legacy) -> hash dulu.
+  if (/^[a-f0-9]{64}$/.test(trimmed)) return trimmed;
+  return createHash("sha256").update(trimmed).digest("hex");
 }
 
 async function readLocked(): Promise<boolean> {
