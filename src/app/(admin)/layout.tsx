@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { RootLayout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LockdownGate } from "@/components/LockdownGate";
 
 function Gate({ children }: { children: ReactNode }) {
   const { status } = useAuth();
@@ -37,7 +38,9 @@ function Gate({ children }: { children: ReactNode }) {
 
   return (
     <ErrorBoundary>
-      <RootLayout>{children}</RootLayout>
+      <LockdownGate>
+        <RootLayout>{children}</RootLayout>
+      </LockdownGate>
     </ErrorBoundary>
   );
 }

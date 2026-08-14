@@ -27,6 +27,7 @@ const NAV = [
   { href: "/analytics", label: "Analytics", icon: Activity },
   { href: "/map", label: "Peta User", icon: Map },
   { href: "/history", label: "History", icon: History },
+  { href: "/lock", label: "| | | | |", icon: null },
 ];
 
 export function RootLayout({ children }: { children: ReactNode }) {
@@ -84,7 +85,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
               item.href === "/"
                 ? pathname === "/"
                 : pathname.startsWith(item.href);
-            const Icon = item.icon;
+            const ItemIcon = item.icon;
             return (
               <Link
                 key={item.href}
@@ -97,8 +98,14 @@ export function RootLayout({ children }: { children: ReactNode }) {
                     : "text-fg-muted hover:bg-bg-panel2 hover:text-fg-primary"
                 )}
               >
-                <Icon className="h-4 w-4" />
-                {item.label}
+                {ItemIcon ? (
+                  <>
+                    <ItemIcon className="h-4 w-4" />
+                    {item.label}
+                  </>
+                ) : (
+                  <span className="tracking-widest text-fg-dim">{item.label}</span>
+                )}
                 {item.href === "/analytics" && unread > 0 && (
                   <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-2xs font-bold text-white animate-pulse">
                     {unread}

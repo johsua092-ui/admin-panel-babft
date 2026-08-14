@@ -85,4 +85,9 @@ export default defineSchema({
     deviceId: v.optional(v.string()),
     data: v.any(),
   }).index("by_timestamp", ["timestamp"]),
+
+  settings: defineTable({
+    key: v.string(),
+    value: v.any(),
+  }).index("by_key", ["key"]),
 });
