@@ -1,0 +1,59 @@
+import { v } from "convex/values";
+import { query, mutation } from "./_generated/server";
+
+const PAGE_SIZE = 500;
+
+export const getUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    const users = await ctx.db.query("users").withIndex("by_lastLoginAt").order("desc").take(PAGE_SIZE);
+    return users.map((u) => ({ ...u, id: u.id ?? u._id }));
+  },
+});
+
+export const getUser = query({
+  args: { id: v.string() },
+  handler: async (ctx, args) => {
+    const users = await ctx.db.query("users").collect();
+    const found = users.find((u) => u.id === args.id || u._id === args.id);
+    return found ? { ...found, id: found.id ?? found._id } : null;
+  },
+});
+
+export const getUserHistory = query({
+  args: { uid: v.string() },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db.query("history").withIndex("by_uid", (q) => q.eq("uid", args.uid)).take(200);
+    rows.sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+    return rows.slice(0, 200).map((h) => ({ ...h.data, id: h._id, uid: h.uid, timestamp: h.timestamp }));
+  },
+});
+
+export const deleteUser = mutation({
+  args: { id: v.string() },
+  handler: async (ctx, args) => {
+    const users = await ctx.db.query("users").collect();
+    const target = users.find((u) => u.id === args.id || u._id === args.id);
+    if (target) { await ctx.db.delete(target._id); return { ok: true, id: args.id }; }
+    return { ok: false, id: args.id, reason: "not_found" };
+  },
+});
+
+export const upsertUser = mutation({
+  args: { id: v.string(), data: v.any() },
+  handler: async (ctx, args) => {
+    const users = await ctx.db.query("users").collect();
+    const target = users.find((u) => u.id === args.id || u._id === args.id);
+    if (target) { await ctx.db.patch(target._id, { ...args.data, id: args.id }); return { ok: true, id: target._id, updated: true }; }
+    const newId = await ctx.db.insert("users", { ...args.data, id: args.id });
+    return { ok: true, id: newId, updated: false };
+  },
+});
+
+export const addHistory = mutation({
+  args: { uid: v.string(), timestamp: v.optional(v.union(v.float64(), v.null())), data: v.any() },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("history", { uid: args.uid, timestamp: args.timestamp ?? null, data: args.data });
+    return { ok: true };
+  },
+});

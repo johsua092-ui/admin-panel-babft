@@ -1,56 +1,8 @@
-// GET /api/admin/logs — riwayat login admin + agregasi per admin.
-
 import { NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/adminFirestore";
-import { getCached, setCached } from "@/lib/apiCache";
-
+import { data } from "@/lib/data";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-const TTL = 60000; // 60 detik (login admin jarang)
-
-type AdminLogin = {
-  id: string;
-  uid: string;
-  email: string;
-  role: string;
-  timestamp: number;
-};
-
 export async function GET() {
-  const cached = getCached<any>("admin-logs");
-  if (cached) return NextResponse.json(cached);
-
-  try {
-    const db = getAdminDb();
-    const snap = await db
-      .collection("admin_logins")
-      .orderBy("timestamp", "desc")
-      .limit(500)
-      .get();
-
-    const logs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })) as AdminLogin[];
-
-    const byEmail = new Map<string, { email: string; role: string; count: number; last: number; first: number }>();
-    for (const l of logs) {
-      const key = l.email.toLowerCase();
-      const e = byEmail.get(key);
-      if (!e) {
-        byEmail.set(key, { email: l.email, role: l.role, count: 1, last: l.timestamp, first: l.timestamp });
-      } else {
-        e.count += 1;
-        if (l.timestamp > e.last) e.last = l.timestamp;
-        if (l.timestamp < e.first) e.first = l.timestamp;
-      }
-    }
-
-    const admins = Array.from(byEmail.values()).sort((a, b) => b.last - a.last);
-
-    const result = { logs, admins };
-    setCached("admin-logs", result, TTL);
-    return NextResponse.json(result);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
+  try { const result = await data.getAdminLogs(); return NextResponse.json(result); }
+  catch (e) { const msg = e instanceof Error ? e.message : String(e); return NextResponse.json({ error: msg }, { status: 500 }); }
 }
