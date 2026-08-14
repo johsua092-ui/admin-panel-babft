@@ -15,4 +15,5 @@ export interface DataSource {
   getAdminLogs(): Promise<AdminLogsResult>;
   getAnalytics(): Promise<AnalyticsResult>;
   upsertUser(id: string, data: Record<string, unknown>): Promise<{ ok: boolean }>;
+  setBan(id: string, banned: boolean, reason?: string | null): Promise<{ ok: boolean; id: string; banned?: boolean }>;
 }

@@ -57,3 +57,17 @@ export const addHistory = mutation({
     return { ok: true };
   },
 });
+
+export const setBan = mutation({
+  args: { id: v.string(), banned: v.boolean(), reason: v.optional(v.union(v.string(), v.null())) },
+  handler: async (ctx, args) => {
+    const users = await ctx.db.query("users").collect();
+    const target = users.find((u) => u.id === args.id || u._id === args.id);
+    if (!target) return { ok: false, id: args.id, reason: "not_found" };
+    const now = Date.now();
+    await ctx.db.patch(target._id, args.banned
+      ? { banned: true, bannedAt: now, bannedReason: args.reason ?? null }
+      : { banned: false, unbannedAt: now, bannedReason: null });
+    return { ok: true, id: args.id, banned: args.banned };
+  },
+});

@@ -10,4 +10,5 @@ export const convexDataSource: DataSource = {
   async getAdminLogs() { return convexQuery<AdminLogsResult>("adminLogins:getAdminLogins", {}); },
   async getAnalytics() { return convexQuery<AnalyticsResult>("analytics:getAnalyticsEvents", {}); },
   async upsertUser(id, data) { await convexMutation<{ ok: boolean }>("users:upsertUser", { id, data }); return { ok: true }; },
+  async setBan(id, banned, reason) { const r = await convexMutation<{ ok: boolean; banned?: boolean }>("users:setBan", { id, banned, reason: reason ?? null }); return { ok: Boolean(r.ok), id, banned: r.banned ?? banned }; },
 };

@@ -5,8 +5,10 @@ import {
   MapPin, Clock3, Wifi, ShieldAlert, Search, ChevronUp, ChevronDown,
   Circle, Monitor, Smartphone, Tablet, MonitorSmartphone, Navigation,
   Home, Cpu, Fingerprint, Languages, Trash2, Download, History,
+  Ban, ShieldCheck, ShieldX,
 } from "lucide-react";
 import { useUsers } from "@/hooks/useUsers";
+import { useAuth } from "@/context/AuthContext";
 import { Badge, Card } from "@/components/ui";
 import { PulseDot } from "@/components/anim";
 import { fmtDateTime, fmtRelative } from "@/lib/format";
@@ -23,11 +25,34 @@ function deviceIcon(type?: string | null) {
 
 export default function UsersPage() {
   const { users, loading, error } = useUsers();
+  const { getIdToken, admin } = useAuth();
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("lastLoginAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [banningId, setBanningId] = useState<string | null>(null);
+
+  async function toggleBan(id: string, currentlyBanned: boolean) {
+    if (!admin) { alert("Hanya admin terdaftar yang bisa mengubah status ban."); return; }
+    setBanningId(id);
+    try {
+      const token = await getIdToken();
+      const r = await fetch(`/api/users/${encodeURIComponent(id)}/ban`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ banned: !currentlyBanned, reason: currentlyBanned ? null : "VPN terdeteksi" }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => ({}));
+        alert("Gagal " + (currentlyBanned ? "unban" : "ban") + ": " + (j.error || r.status));
+      }
+    } catch (e) {
+      alert("Gagal: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setBanningId(null);
+    }
+  }
 
   async function removeUser(id: string) {
     if (!confirm("Hapus user ini dari daftar?")) return;
@@ -155,6 +180,8 @@ export default function UsersPage() {
                   onToggle={() => setExpanded((e) => (e === u.id ? null : u.id))}
                   onDelete={() => removeUser(u.id)}
                   deleting={deletingId === u.id}
+                  onToggleBan={() => toggleBan(u.id, !!u.banned)}
+                  banning={banningId === u.id}
                 />
               ))}
             </tbody>
@@ -165,12 +192,14 @@ export default function UsersPage() {
   );
 }
 
-function UserRow({ u, expanded, onToggle, onDelete, deleting }: {
+function UserRow({ u, expanded, onToggle, onDelete, deleting, onToggleBan, banning }: {
   u: UserRecord;
   expanded: boolean;
   onToggle: () => void;
   onDelete: () => void;
   deleting: boolean;
+  onToggleBan: () => void;
+  banning: boolean;
 }) {
   const DeviceIcon = deviceIcon(u.deviceType);
   return (
@@ -232,22 +261,38 @@ function UserRow({ u, expanded, onToggle, onDelete, deleting }: {
           <div className="text-2xs text-fg-dim">{fmtRelative(u.lastLoginAt)}</div>
         </td>
         <td>
-          {u.flaggedAsVpn ? (
-            <Badge tone="danger"><ShieldAlert className="h-3 w-3" /> VPN</Badge>
-          ) : (
-            <Badge tone="default">—</Badge>
-          )}
+          <div className="flex flex-col items-start gap-1">
+            {u.flaggedAsVpn ? (
+              <Badge tone="danger"><ShieldAlert className="h-3 w-3" /> VPN</Badge>
+            ) : (
+              <Badge tone="default">—</Badge>
+            )}
+            {u.banned ? (
+              <Badge tone="danger"><Ban className="h-3 w-3" /> Ban</Badge>
+            ) : null}
+          </div>
         </td>
         <td className="text-right">
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            disabled={deleting}
-            title="Hapus user"
-            className="inline-flex items-center gap-1 rounded border border-bg-border px-2 py-1 text-2xs text-fg-muted transition-colors hover:border-danger hover:text-danger disabled:opacity-50"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {deleting ? "…" : "Hapus"}
-          </button>
+          <div className="inline-flex items-center gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleBan(); }}
+              disabled={banning}
+              title={u.banned ? "Batalkan ban (unban)" : "Ban user ini"}
+              className="inline-flex items-center gap-1 rounded border border-bg-border px-2 py-1 text-2xs text-fg-muted transition-colors hover:border-warn hover:text-warn disabled:opacity-50"
+            >
+              {u.banned ? <ShieldCheck className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+              {banning ? "…" : (u.banned ? "Unban" : "Ban")}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              disabled={deleting}
+              title="Hapus user"
+              className="inline-flex items-center gap-1 rounded border border-bg-border px-2 py-1 text-2xs text-fg-muted transition-colors hover:border-danger hover:text-danger disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {deleting ? "…" : "Hapus"}
+            </button>
+          </div>
         </td>
       </tr>
 

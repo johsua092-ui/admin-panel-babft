@@ -39,6 +39,14 @@ export type UserRecord = {
   regionChangedAt?: number | null;
   regionChangeCount?: number;
   flaggedAsVpn?: boolean;
+  isProxy?: boolean;
+  isHosting?: boolean;
+  vpnProvider?: string | null;
+  asn?: string | null;
+  banned?: boolean;
+  bannedAt?: number | null;
+  bannedReason?: string | null;
+  unbannedAt?: number | null;
   // meta
   createdAt?: number | null;
   updatedAt?: number | null;

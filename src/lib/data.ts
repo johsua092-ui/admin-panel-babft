@@ -54,4 +54,5 @@ export const data = {
   deleteUser: (id: string) => writeWithMirror((ds) => ds.deleteUser(id)),
   logAdminLogin: (i: { uid: string; email: string; role: string }) => writeWithMirror((ds) => ds.logAdminLogin(i)),
   upsertUser: (id: string, p: Record<string, unknown>) => writeWithMirror((ds) => ds.upsertUser(id, p)),
+  setBan: (id: string, banned: boolean, reason?: string | null) => writeWithMirror((ds) => ds.setBan(id, banned, reason ?? null)),
 };
