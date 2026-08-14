@@ -10,7 +10,12 @@ export const getUsers = query({
   args: tokenArg,
   handler: async (ctx, args) => {
     assertAuthed(args.token);
-    const users = await ctx.db.query("users").withIndex("by_lastLoginAt").order("desc").take(PAGE_SIZE);
+    // Ambil SEMUA user lalu sort di memory — lebih robust daripada index order,
+    // karena index by_lastLoginAt tidak meng-cover dokumen dengan lastLoginAt null,
+    // sehingga user baru (atau field kosong) bisa hilang dari daftar.
+    const all = await ctx.db.query("users").collect();
+    all.sort((a, b) => ((b.lastLoginAt ?? 0) - (a.lastLoginAt ?? 0)));
+    const users = all.slice(0, PAGE_SIZE);
     return users.map((u) => ({ ...u, id: u.id ?? u._id }));
   },
 });
