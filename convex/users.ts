@@ -68,9 +68,11 @@ export const upsertUser = mutation({
     const ipAddress = typeof d.ipAddress === "string" && d.ipAddress ? d.ipAddress : null;
     const region = typeof d.region === "string" && d.region ? d.region : null;
 
-    // Match berurutan: id -> uid -> deviceId+ipAddress+region (dedup anti duplikat)
+    // Match berurutan (agar user yang sama tidak menjadi "user baru" walau ganti IP):
+    // 1) id / _id, 2) uid (login), 3) deviceId (perangkat permanen), 4) deviceId+ip+region.
     let target = users.find((u) => u.id === args.id || u._id === args.id);
     if (!target && uid) target = users.find((u) => u.uid === uid && !u.isGuest);
+    if (!target && deviceId) target = users.find((u) => u.deviceId === deviceId);
     if (!target && deviceId && ipAddress && region) {
       target = users.find((u) =>
         u.deviceId === deviceId && u.ipAddress === ipAddress && u.region === region
