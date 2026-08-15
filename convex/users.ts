@@ -14,8 +14,10 @@ export const getUsers = query({
     // karena index by_lastLoginAt tidak meng-cover dokumen dengan lastLoginAt null,
     // sehingga user baru (atau field kosong) bisa hilang dari daftar.
     const all = await ctx.db.query("users").collect();
-    all.sort((a, b) => ((b.lastLoginAt ?? 0) - (a.lastLoginAt ?? 0)));
-    const users = all.slice(0, PAGE_SIZE);
+    // Soft-delete: user yang dihapus admin tetap tersimpan tapi disembunyikan dari daftar.
+    const alive = all.filter((u) => u.deleted !== true);
+    alive.sort((a, b) => ((b.lastLoginAt ?? 0) - (a.lastLoginAt ?? 0)));
+    const users = alive.slice(0, PAGE_SIZE);
     return users.map((u) => ({ ...u, id: u.id ?? u._id }));
   },
 });
@@ -46,8 +48,12 @@ export const deleteUser = mutation({
     assertAuthed(args.token);
     const users = await ctx.db.query("users").collect();
     const target = users.find((u) => u.id === args.id || u._id === args.id);
-    if (target) { await ctx.db.delete(target._id); return { ok: true, id: args.id }; }
-    return { ok: false, id: args.id, reason: "not_found" };
+    if (!target) return { ok: false, id: args.id, reason: "not_found" };
+    const now = Date.now();
+    // Soft delete: tandai deleted, jangan hapus permanen. getUsers akan menyaringnya,
+    // dan upsertUser tidak akan menghidupkannya kembali.
+    await ctx.db.patch(target._id, { deleted: true, deletedAt: now });
+    return { ok: true, id: args.id, deleted: true };
   },
 });
 
@@ -72,7 +78,20 @@ export const upsertUser = mutation({
     }
 
     if (target) {
-      await ctx.db.patch(target._id, { ...args.data, id: target.id ?? args.id });
+      // Preserve flag admin: banned tidak boleh tertimpa oleh payload frontend,
+      // dan user yang sudah dihapus (soft-deleted) tidak boleh dihidupkan lagi.
+      const patchData: Record<string, unknown> = { ...args.data, id: target.id ?? args.id };
+      if (target.banned === true || args.data?.banned === true) {
+        patchData.banned = true;
+        if (!patchData.bannedAt) patchData.bannedAt = target.bannedAt ?? Date.now();
+        if (!patchData.bannedReason) patchData.bannedReason = target.bannedReason ?? null;
+      }
+      if (target.deleted === true) {
+        // Jangan hidupkan kembali user yang sudah dihapus admin.
+        patchData.deleted = true;
+        patchData.deletedAt = target.deletedAt ?? Date.now();
+      }
+      await ctx.db.patch(target._id, patchData);
       return { ok: true, id: target._id, updated: true };
     }
     const newId = await ctx.db.insert("users", { ...args.data, id: args.id });

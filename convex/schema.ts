@@ -55,6 +55,8 @@ export default defineSchema({
     bannedAt: v.optional(v.union(v.float64(), v.null())),
     bannedReason: v.optional(v.union(v.string(), v.null())),
     unbannedAt: v.optional(v.union(v.float64(), v.null())),
+    deleted: v.optional(v.boolean()),
+    deletedAt: v.optional(v.union(v.float64(), v.null())),
     createdAt: v.optional(v.union(v.float64(), v.null())),
     updatedAt: v.optional(v.union(v.float64(), v.null())),
   })

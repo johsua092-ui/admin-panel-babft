@@ -47,3 +47,5 @@ Fri Aug 14 11:23:49 UTC 2026
 Fri Aug 14 11:27:49 UTC 2026
 
 # redeploy trigger
+
+<!-- deploy-trigger: fix ban/delete soft-delete -->
