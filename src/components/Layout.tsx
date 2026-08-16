@@ -16,6 +16,7 @@ import {
   X,
   Bell,
   BookOpen,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/cn";
@@ -25,6 +26,7 @@ const NAV = [
   { href: "/users", label: "Users", icon: Users },
   { href: "/servers", label: "Servers", icon: Server },
   { href: "/analytics", label: "Analytics", icon: Activity },
+  { href: "/business", label: "Bisnis & AI", icon: BarChart3 },
   { href: "/map", label: "Peta User", icon: Map },
   { href: "/history", label: "History", icon: History },
   { href: "/lock", label: "| | | | |", icon: null },
