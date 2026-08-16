@@ -13,6 +13,8 @@ export async function GET(req: Request) {
     return NextResponse.json(result);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json({ error: msg }, { status: 500 });
+    const detail = e instanceof Error ? (e.stack || "").split("\n").slice(0, 4).join(" | ") : "";
+    console.error("[business] error:", e);
+    return NextResponse.json({ error: msg, detail }, { status: 500 });
   }
 }

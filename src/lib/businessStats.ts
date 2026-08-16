@@ -75,17 +75,28 @@ export type BusinessStats = {
   timeSeries: Array<{ date: string; purchases: number; activeAI: number }>;
 };
 
+// Ambil satu koleksi dengan toleransi error; return [] kalau koleksi gagal/absent.
+async function safeGet(db: any, name: string): Promise<any[]> {
+  try {
+    const snap = await db.collection(name).get();
+    return snap.docs;
+  } catch (e) {
+    console.error(`[businessStats] gagal baca koleksi ${name}:`, e);
+    return [];
+  }
+}
+
 export async function getBusinessStats(): Promise<BusinessStats> {
   const db = getAdminDb();
 
-  const [usersSnap, aiSnap, goldLogSnap, chatSnap] = await Promise.all([
-    db.collection(USERS_COLLECTION()).get(),
-    db.collection("ai_access").get(),
-    db.collection("gold_log").get(),
-    db.collection("ai_chat_log").get(),
+  const [userDocs, aiDocs, goldLogDocs, chatDocs] = await Promise.all([
+    safeGet(db, USERS_COLLECTION()),
+    safeGet(db, "ai_access"),
+    safeGet(db, "gold_log"),
+    safeGet(db, "ai_chat_log"),
   ]);
 
-  const totalUsers = usersSnap.size;
+  const totalUsers = userDocs.length;
 
   // ---- Topup: dari gold_log ----
   const buyerUids = new Set<string>();
@@ -93,7 +104,7 @@ export async function getBusinessStats(): Promise<BusinessStats> {
   let totalBuyTransactions = 0;
   let totalGoldSpent = 0;
 
-  goldLogSnap.docs.forEach((d) => {
+  goldLogDocs.forEach((d: any) => {
     const x = d.data();
     const type = String(x.type || "");
     const isPurchase = type === "spend_ai" || type === "topup" || type === "topup_member" || type === "buy";
@@ -114,7 +125,7 @@ export async function getBusinessStats(): Promise<BusinessStats> {
   const now = Date.now();
   const activeDays = new Map<string, number>();
 
-  aiSnap.docs.forEach((d) => {
+  aiDocs.forEach((d: any) => {
     const x = d.data();
     aiAccessUsers++;
     totalRemainingMinutes += Math.max(0, Number(x.remainingMinutes) || 0);
@@ -140,7 +151,7 @@ export async function getBusinessStats(): Promise<BusinessStats> {
 
   // ---- Topik (dipakai buat apa) ----
   const topicMap = new Map<string, number>();
-  chatSnap.docs.forEach((d) => {
+  chatDocs.forEach((d: any) => {
     const x = d.data();
     const cat = classifyTopic(x.message || x.question || "");
     topicMap.set(cat, (topicMap.get(cat) || 0) + 1);
