@@ -151,7 +151,8 @@ export async function POST(req: NextRequest) {
 
       const ref = db.collection("users").doc(resolvedUid);
       const doc = await ref.get();
-      const current = doc.exists ? (doc.data().gold || 0) : 0;
+      const docData = doc.exists ? doc.data() : null;
+      const current = docData ? (docData.gold || 0) : 0;
       const newBalance = current + amount;
       const now = new Date();
 
@@ -172,7 +173,8 @@ export async function POST(req: NextRequest) {
       const ref = db.collection("users").doc(resolvedUid);
       const doc = await ref.get();
       if (!doc.exists) return NextResponse.json({ error: "User not found" }, { status: 404 });
-      const current = doc.data().gold || 0;
+      const deductDocData = doc.data();
+      const current = deductDocData ? (deductDocData.gold || 0) : 0;
       if (current < amount) return NextResponse.json({ error: "Insufficient gold", currentGold: current }, { status: 402 });
 
       const newBalance = current - amount;

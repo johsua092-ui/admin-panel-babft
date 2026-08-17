@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
@@ -34,21 +34,28 @@ function isComplete(cfg: Record<string, string | undefined>): boolean {
 }
 
 function initApp(name: string, cfg: Record<string, string | undefined>): FirebaseApp {
-  const existing = getApps().find((a) => a.name === name);
+  const existing = getApps().find((a: FirebaseApp) => a.name === name);
   if (existing) return existing;
   return initializeApp(cfg, name);
 }
 
-// Auth + Firestore utama (admin) — WAJIB lengkap, kalau kosong throw di build.
+// Auth + Firestore utama (admin) — lazy init agar build tidak crash
+// kalau NEXT_PUBLIC_FIREBASE_* belum diset di Vercel env.
 const mainApp = (() => {
   if (!isComplete(mainConfig)) {
-    // Saat import modul sisi client, env NEXT_PUBLIC_* sudah di-inline.
-    // Throw hanya jika benar-benar kosong (harusnya diisi di Vercel).
-    throw new Error(
-      "Firebase config utama belum lengkap. Isi NEXT_PUBLIC_FIREBASE_* di env."
-    );
+    // JANGAN throw di sini — build time / SSR mungkin belum punya env vars.
+    // Buat dummy app supaya import tidak crash. Akan fail saat user coba login.
+    if (typeof window !== "undefined") {
+      console.warn(
+        "[firebase] NEXT_PUBLIC_FIREBASE_* belum lengkap. " +
+        "Login tidak akan berfungsi sampai env vars diisi di Vercel."
+      );
+    }
+    // Return placeholder config — getAuth/getFirestore akan error saat dipakai,
+    // tapi tidak crash saat import.
+    return initializeApp(mainConfig, "[DEFAULT]");
   }
-  const existing = getApps().find((a) => a.name === "[DEFAULT]");
+  const existing = getApps().find((a: FirebaseApp) => a.name === "[DEFAULT]");
   return existing ?? initializeApp(mainConfig);
 })();
 

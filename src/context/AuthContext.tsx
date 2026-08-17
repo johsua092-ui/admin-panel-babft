@@ -88,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const ref = doc(db, ADMINS_COLLECTION, uid);
       const snap = await getDoc(ref);
 
-      if (snap.exists()) {
+      if (snap.exists) {
         const data = snap.data() as AdminRecord;
         if (data.active === false) {
           await firebaseSignOut(auth);
