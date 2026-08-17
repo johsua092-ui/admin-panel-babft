@@ -6,6 +6,7 @@ import {
   Shield, Search, History, AlertTriangle,
 } from "lucide-react";
 import { Card } from "@/components/ui";
+import { useAuth } from "@/context/AuthContext";
 
 interface Member {
   uid: string;
@@ -18,6 +19,7 @@ interface Member {
 interface GoldLog {
   id: string;
   uid: string;
+  email?: string | null;
   type: string;
   amount: number;
   balanceAfter: number;
@@ -26,6 +28,7 @@ interface GoldLog {
 }
 
 export default function CoinsPage() {
+  const { user, getIdToken } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [logs, setLogs] = useState<GoldLog[]>([]);
   const [totalGold, setTotalGold] = useState(0);
@@ -41,21 +44,34 @@ export default function CoinsPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionResult, setActionResult] = useState<string | null>(null);
 
-  // Bulk
+  // Bulk grant
   const [bulkAmount, setBulkAmount] = useState("");
   const [bulkNote, setBulkNote] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkResult, setBulkResult] = useState<string | null>(null);
 
+  // Bulk deduct
+  const [bulkDeductAmount, setBulkDeductAmount] = useState("");
+  const [bulkDeductNote, setBulkDeductNote] = useState("");
+  const [bulkDeductLoading, setBulkDeductLoading] = useState(false);
+  const [bulkDeductResult, setBulkDeductResult] = useState<string | null>(null);
+
   // Search
   const [search, setSearch] = useState("");
   const [logFilter, setLogFilter] = useState("");
+
+  async function getAuthHeaders(): Promise<Record<string, string>> {
+    const token = await getIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
 
   async function loadData() {
     setLoading(true);
     setError(null);
     try {
-      const r = await fetch("/api/coins");
+      const headers = await getAuthHeaders();
+      const r = await fetch("/api/coins", { headers });
+      if (r.status === 401) { setError("Unauthorized — silakan login ulang"); setLoading(false); return; }
       if (!r.ok) throw new Error(`API ${r.status}`);
       const data = await r.json();
       setMembers(data.members || []);
@@ -68,16 +84,17 @@ export default function CoinsPage() {
     setLoading(false);
   }
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { if (user) loadData(); }, [user]);
 
   async function doAction() {
     if (!selectedUid || !actionAmount) return;
     setActionLoading(true);
     setActionResult(null);
     try {
+      const headers = await getAuthHeaders();
       const r = await fetch("/api/coins", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({
           action: actionType,
           targetUid: selectedUid,
@@ -100,9 +117,10 @@ export default function CoinsPage() {
     setBulkLoading(true);
     setBulkResult(null);
     try {
+      const headers = await getAuthHeaders();
       const r = await fetch("/api/coins", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...headers },
         body: JSON.stringify({
           action: "bulk-grant",
           amount: parseInt(bulkAmount, 10),
@@ -119,6 +137,31 @@ export default function CoinsPage() {
     setBulkLoading(false);
   }
 
+  async function doBulkDeduct() {
+    if (!bulkDeductAmount) return;
+    setBulkDeductLoading(true);
+    setBulkDeductResult(null);
+    try {
+      const headers = await getAuthHeaders();
+      const r = await fetch("/api/coins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({
+          action: "bulk-deduct",
+          amount: parseInt(bulkDeductAmount, 10),
+          note: bulkDeductNote || "Bulk deduct from admin panel",
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Gagal");
+      setBulkDeductResult(`🔴 ${data.count} member dikurangi — total deducted: ${data.totalDeducted}`);
+      loadData();
+    } catch (e) {
+      setBulkDeductResult(`❌ ${e instanceof Error ? e.message : "Gagal"}`);
+    }
+    setBulkDeductLoading(false);
+  }
+
   const filteredMembers = members
     .filter((m) => {
       const q = search.toLowerCase();
@@ -133,10 +176,17 @@ export default function CoinsPage() {
     const q = logFilter.toLowerCase();
     if (!q) return true;
     return l.type.toLowerCase().includes(q) || l.uid.toLowerCase().includes(q) ||
+      (l.email || "").toLowerCase().includes(q) ||
       (l.meta?.note || "").toLowerCase().includes(q);
   });
 
   const selectedMember = members.find((m) => m.uid === selectedUid);
+
+  // Build a uid→email map for log display
+  const uidEmailMap = new Map<string, string>();
+  for (const m of members) {
+    if (m.email) uidEmailMap.set(m.uid, m.email);
+  }
 
   if (loading) return <div className="py-16 text-center text-fg-dim">Memuat data coin…</div>;
   if (error) return <div className="rounded border border-[#5b1f1f] bg-[#331414] p-4 text-sm text-danger">Error: {error}</div>;
@@ -213,6 +263,29 @@ export default function CoinsPage() {
         </div>
       </Card>
 
+      {/* Bulk Deduct (Withdraw from all) */}
+      <Card>
+        <div className="p-4">
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-bold text-red-400">
+            <ArrowUpFromLine className="h-4 w-4" /> Bulk Tarik Gold dari Semua Member
+          </h2>
+          <div className="mb-2 flex items-center gap-1 text-2xs text-warn">
+            <AlertTriangle className="h-3 w-3" /> Anti-abuse: tarik gold dari semua member sekaligus. Tidak akan jadi negatif.
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <input type="number" placeholder="Amount" value={bulkDeductAmount} onChange={(e) => setBulkDeductAmount(e.target.value)}
+              className="w-28 rounded border border-bg-border bg-bg-panel px-3 py-2 text-sm font-bold text-red-400 focus:border-accent focus:outline-none" />
+            <input type="text" placeholder="Alasan (opsional)" value={bulkDeductNote} onChange={(e) => setBulkDeductNote(e.target.value)}
+              className="flex-1 min-w-[150px] rounded border border-bg-border bg-bg-panel px-3 py-2 text-xs text-fg-primary focus:border-accent focus:outline-none" />
+            <button onClick={doBulkDeduct} disabled={bulkDeductLoading || !bulkDeductAmount}
+              className="rounded bg-red-700 px-4 py-2 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-40">
+              {bulkDeductLoading ? "…" : "Tarik Semua"}
+            </button>
+          </div>
+          {bulkDeductResult && <div className="mt-2 text-xs">{bulkDeductResult}</div>}
+        </div>
+      </Card>
+
       {/* Member list + Action panel */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         {/* Member list */}
@@ -248,11 +321,11 @@ export default function CoinsPage() {
                         <td className="text-right font-bold text-yellow-400">{m.gold}</td>
                         <td>
                           <div className="flex gap-1">
-                            <button onClick={() => { setSelectedUid(m.uid); setActionType("grant"); }}
+                            <button onClick={() => { setSelectedUid(m.uid); setActionType("grant"); setActionAmount(""); setActionNote(""); }}
                               className="rounded border border-green-800 px-2 py-0.5 text-2xs text-green-400 hover:bg-green-900/30">
                               <ArrowDownToLine className="h-3 w-3" />
                             </button>
-                            <button onClick={() => { setSelectedUid(m.uid); setActionType("deduct"); }}
+                            <button onClick={() => { setSelectedUid(m.uid); setActionType("deduct"); setActionAmount(""); setActionNote(""); }}
                               className="rounded border border-red-800 px-2 py-0.5 text-2xs text-red-400 hover:bg-red-900/30">
                               <ArrowUpFromLine className="h-3 w-3" />
                             </button>
@@ -317,8 +390,8 @@ export default function CoinsPage() {
             <h2 className="flex items-center gap-2 text-sm font-bold">
               <History className="h-4 w-4" /> Riwayat Transaksi
             </h2>
-            <input value={logFilter} onChange={(e) => setLogFilter(e.target.value)} placeholder="Filter type/uid..."
-              className="w-40 rounded border border-bg-border bg-bg-panel py-1.5 px-2 text-xs focus:border-accent focus:outline-none" />
+            <input value={logFilter} onChange={(e) => setLogFilter(e.target.value)} placeholder="Filter type/email/uid..."
+              className="w-48 rounded border border-bg-border bg-bg-panel py-1.5 px-2 text-xs focus:border-accent focus:outline-none" />
           </div>
           <div className="max-h-[300px] overflow-y-auto">
             <table className="admin-table">
@@ -326,7 +399,7 @@ export default function CoinsPage() {
                 <tr>
                   <th>Waktu</th>
                   <th>Type</th>
-                  <th>UID</th>
+                  <th>User</th>
                   <th className="text-right">Amount</th>
                   <th className="text-right">Balance</th>
                   <th>Note</th>
@@ -338,22 +411,26 @@ export default function CoinsPage() {
                   const typeColors: Record<string, string> = {
                     admin_grant: "text-green-400",
                     admin_deduct: "text-red-400",
-                    transfer_in: "text-green-400",
+                    transfer_in: "text-blue-400",
                     transfer_out: "text-red-400",
                     spend_ai: "text-orange-400",
+                    earn_ai: "text-cyan-400",
                   };
+                  const displayEmail = l.email || uidEmailMap.get(l.uid) || l.uid.slice(0, 16) + "…";
                   return (
                     <tr key={l.id}>
                       <td className="text-2xs tabular-nums text-fg-dim">
                         {l.createdAt ? new Date(l.createdAt).toLocaleString("id-ID", { dateStyle: "short", timeStyle: "short" }) : "—"}
                       </td>
                       <td className={`text-2xs font-semibold ${typeColors[l.type] || "text-fg-muted"}`}>{l.type}</td>
-                      <td className="text-2xs font-mono text-fg-dim">{l.uid.slice(0, 16)}…</td>
+                      <td className="text-2xs text-fg-dim" title={l.uid}>{displayEmail}</td>
                       <td className={`text-right text-xs font-bold ${isPositive ? "text-green-400" : "text-red-400"}`}>
                         {isPositive ? "+" : ""}{l.amount}
                       </td>
                       <td className="text-right text-2xs text-fg-dim">{l.balanceAfter}</td>
-                      <td className="max-w-[120px] truncate text-2xs text-fg-dim">{l.meta?.note || l.meta?.bulkGrant ? "bulk" : ""}</td>
+                      <td className="max-w-[120px] truncate text-2xs text-fg-dim">
+                        {l.meta?.note || l.meta?.bulkGrant ? "bulk grant" : l.meta?.bulkDeduct ? "bulk deduct" : ""}
+                      </td>
                     </tr>
                   );
                 })}
