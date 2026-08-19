@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   Coins, Users, ArrowDownToLine, ArrowUpFromLine, RefreshCw,
-  Shield, Search, History, AlertTriangle,
+  Shield, Search, History, AlertTriangle, Infinity as InfinityIcon,
 } from "lucide-react";
 import { Card } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
@@ -14,6 +14,7 @@ interface Member {
   displayName: string | null;
   gold: number;
   updatedAt: string | null;
+  isAdmin: boolean;
 }
 
 interface GoldLog {
@@ -318,7 +319,15 @@ export default function CoinsPage() {
                           <div className="text-xs font-medium">{m.displayName || "—"}</div>
                           <div className="text-2xs text-fg-dim">{m.email || m.uid.slice(0, 20)}</div>
                         </td>
-                        <td className="text-right font-bold text-yellow-400">{m.gold}</td>
+                        <td className="text-right font-bold text-yellow-400">
+                          {m.isAdmin ? (
+                            <span className="inline-flex items-center">
+                              <InfinityIcon className="h-4 w-4" strokeWidth={2.5} />
+                            </span>
+                          ) : (
+                            <>{m.gold}</>
+                          )}
+                        </td>
                         <td>
                           <div className="flex gap-1">
                             <button onClick={() => { setSelectedUid(m.uid); setActionType("grant"); setActionAmount(""); setActionNote(""); }}

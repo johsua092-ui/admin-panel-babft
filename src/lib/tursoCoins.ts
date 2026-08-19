@@ -35,6 +35,7 @@ export type CoinMember = {
   displayName: string | null;
   gold: number;
   updatedAt: string | null;
+  isAdmin: boolean;
 };
 
 export type GoldLogRow = {
@@ -53,13 +54,29 @@ export async function getCoinMembers(): Promise<{ members: CoinMember[]; totalGo
   const r = await c.execute(
     "SELECT id, uid, email, displayName, gold, updatedAt FROM users WHERE deleted = 0 ORDER BY COALESCE(lastLoginAt, 0) DESC LIMIT 500"
   );
-  const members: CoinMember[] = r.rows.map((row) => ({
-    uid: String(row.id ?? row.uid ?? ""),
-    email: row.email != null ? String(row.email) : null,
-    displayName: row.displayName != null ? String(row.displayName) : null,
-    gold: typeof row.gold === "number" ? row.gold : typeof row.gold === "string" ? Number(row.gold) || 0 : 0,
-    updatedAt: tsToISO(row.updatedAt),
-  }));
+  // Read admin whitelist from env (NEXT_PUBLIC_ADMIN_EMAILS) — union with
+  // optional ADMIN_UIDS env (set on admin-panel-babft if needed).
+  const adminEmails = new Set(
+    (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+      .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
+  );
+  const adminUids = new Set(
+    (process.env.ADMIN_UIDS || "")
+      .split(",").map((s) => s.trim()).filter(Boolean)
+  );
+  const members: CoinMember[] = r.rows.map((row) => {
+    const email = row.email != null ? String(row.email) : null;
+    const uid = String(row.id ?? row.uid ?? "");
+    const isAdmin = (email != null && adminEmails.has(email.toLowerCase())) || adminUids.has(uid);
+    return {
+      uid,
+      email,
+      displayName: row.displayName != null ? String(row.displayName) : null,
+      gold: typeof row.gold === "number" ? row.gold : typeof row.gold === "string" ? Number(row.gold) || 0 : 0,
+      updatedAt: tsToISO(row.updatedAt),
+      isAdmin,
+    };
+  });
   const totalGold = members.reduce((sum, m) => sum + m.gold, 0);
   return { members, totalGold, totalMembers: members.length };
 }
