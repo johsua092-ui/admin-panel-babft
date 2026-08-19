@@ -19,6 +19,7 @@ import {
   BarChart3,
   Coins,
   ShoppingCart,
+  ScrollText,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/cn";
@@ -31,6 +32,7 @@ const NAV = [
   { href: "/business", label: "Bisnis & AI", icon: BarChart3 },
   { href: "/coins", label: "Coins", icon: Coins },
   { href: "/marketplace", label: "Marketplace", icon: ShoppingCart },
+  { href: "/audit", label: "Audit Log", icon: ScrollText },
   { href: "/map", label: "Peta User", icon: Map },
   { href: "/history", label: "History", icon: History },
   { href: "/lock", label: "| | | | |", icon: null },

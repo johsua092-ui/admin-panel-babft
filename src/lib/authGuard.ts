@@ -3,15 +3,6 @@ import { getAuth } from "firebase-admin/auth";
 
 const AUTH_APP_NAME = "auth-admin";
 
-// ── PERMANENT ADMINS — hardcoded fallback, survive env var deletion/DB swap ──
-// These emails ALWAYS have admin access to the admin panel regardless of
-// NEXT_PUBLIC_ADMIN_EMAILS env config.
-// Owner: johsua092@gmail.com, Co-admin: aremakonveksi@gmail.com
-const PERMANENT_ADMIN_EMAILS = [
-  "johsua092@gmail.com",
-  "aremakonveksi@gmail.com",
-];
-
 function adminApp(): App {
   const existing = getApps().find((a) => a.name === AUTH_APP_NAME);
   if (existing) return existing;
@@ -24,14 +15,11 @@ function adminApp(): App {
   throw new Error("Firebase auth admin belum dikonfigurasi (FIREBASE_AUTH_ADMIN_*).");
 }
 
-const whitelist = () => {
-  const envList = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
+const whitelist = () =>
+  (process.env.NEXT_PUBLIC_ADMIN_EMAILS || "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
-  // Union of env list + hardcoded permanent admins
-  return [...new Set([...envList, ...PERMANENT_ADMIN_EMAILS])];
-};
 
 export type AuthedAdmin = { uid: string; email: string };
 
