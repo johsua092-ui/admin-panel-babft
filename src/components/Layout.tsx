@@ -18,6 +18,7 @@ import {
   BookOpen,
   BarChart3,
   Coins,
+  ShoppingCart,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/cn";
@@ -29,6 +30,7 @@ const NAV = [
   { href: "/analytics", label: "Analytics", icon: Activity },
   { href: "/business", label: "Bisnis & AI", icon: BarChart3 },
   { href: "/coins", label: "Coins", icon: Coins },
+  { href: "/marketplace", label: "Marketplace", icon: ShoppingCart },
   { href: "/map", label: "Peta User", icon: Map },
   { href: "/history", label: "History", icon: History },
   { href: "/lock", label: "| | | | |", icon: null },
