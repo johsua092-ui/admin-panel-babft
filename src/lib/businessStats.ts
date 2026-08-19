@@ -1,28 +1,35 @@
 // ============================================================================
-// Business stats — agregasi data Firestore (punya-si-jawa) untuk dashboard
-// "Bisnis / Analitik AI": % user topup, durasi pakai AI, dipakai buat apa,
-// dan time-series harian (grafik naik/turun).
+// Business stats — agregasi data Turso untuk dashboard "Bisnis / Analitik AI":
+// % user topup, durasi pakai AI, dipakai buat apa, dan time-series harian
+// (grafik naik/turun).
 //
-// Server-only (dipanggil dari API route). Baca direct pakai Firebase Admin SDK.
+// Server-only (dipanggil dari API route). Baca direct pakai @libsql/client.
 // ============================================================================
 
-import { getAdminDb } from "@/lib/adminFirestore";
+import { createClient } from "@libsql/client";
 
-const USERS_COLLECTION = () => process.env.NEXT_PUBLIC_USERS_COLLECTION || "users";
-
-type FireTs = { _seconds?: number; seconds?: number };
+function client() {
+  const url = process.env.TURSO_DATABASE_URL;
+  const token = process.env.TURSO_AUTH_TOKEN;
+  if (!url) throw new Error("TURSO_DATABASE_URL belum diset.");
+  return createClient({ url, authToken: token });
+}
 
 function toMillis(v: unknown): number | null {
   if (v == null) return null;
   if (typeof v === "number") return v < 1e12 ? v * 1000 : v;
-  if (v instanceof Date && !isNaN(v.getTime())) return v.getTime();
-  const o = v as FireTs;
-  if (o && typeof o === "object") {
+  if (typeof v === "string") {
+    const n = Number(v);
+    if (!isNaN(n)) return n < 1e12 ? n * 1000 : n;
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) return d.getTime();
+    return null;
+  }
+  if (typeof v === "object") {
+    const o = v as { _seconds?: number; seconds?: number };
     if (typeof o._seconds === "number") return o._seconds * 1000;
     if (typeof o.seconds === "number") return o.seconds * 1000;
   }
-  const n = Number(v);
-  if (!isNaN(n)) return n < 1e12 ? n * 1000 : n;
   return null;
 }
 
@@ -75,28 +82,26 @@ export type BusinessStats = {
   timeSeries: Array<{ date: string; purchases: number; activeAI: number }>;
 };
 
-// Ambil satu koleksi dengan toleransi error; return [] kalau koleksi gagal/absent.
-async function safeGet(db: any, name: string): Promise<any[]> {
+async function safeQuery<T>(fn: () => Promise<T>, label: string): Promise<T | null> {
   try {
-    const snap = await db.collection(name).get();
-    return snap.docs;
+    return await fn();
   } catch (e) {
-    console.error(`[businessStats] gagal baca koleksi ${name}:`, e);
-    return [];
+    console.error(`[businessStats] gagal baca ${label}:`, e instanceof Error ? e.message : e);
+    return null;
   }
 }
 
 export async function getBusinessStats(): Promise<BusinessStats> {
-  const db = getAdminDb();
+  const c = client();
 
-  const [userDocs, aiDocs, goldLogDocs, chatDocs] = await Promise.all([
-    safeGet(db, USERS_COLLECTION()),
-    safeGet(db, "ai_access"),
-    safeGet(db, "gold_log"),
-    safeGet(db, "ai_chat_log"),
+  const [userRows, goldLogRows, aiAccessRows, aiChatLogRows] = await Promise.all([
+    safeQuery(() => c.execute("SELECT id, email, gold, lastLoginAt FROM users WHERE deleted = 0").then(r => r.rows), "users"),
+    safeQuery(() => c.execute("SELECT uid, email, type, amount, createdAt FROM gold_log ORDER BY COALESCE(createdAt, 0) DESC LIMIT 1000").then(r => r.rows), "gold_log"),
+    safeQuery(() => c.execute("SELECT uid, email, remainingMinutes, totalMinutesPurchased, timerStartedAt, timerExpiresAt, lastBuyAt FROM ai_access").then(r => r.rows), "ai_access"),
+    safeQuery(() => c.execute("SELECT message, response FROM ai_chat_log ORDER BY COALESCE(createdAt, 0) DESC LIMIT 1000").then(r => r.rows), "ai_chat_log"),
   ]);
 
-  const totalUsers = userDocs.length;
+  const totalUsers = userRows ? userRows.length : 0;
 
   // ---- Topup: dari gold_log ----
   const buyerUids = new Set<string>();
@@ -104,18 +109,19 @@ export async function getBusinessStats(): Promise<BusinessStats> {
   let totalBuyTransactions = 0;
   let totalGoldSpent = 0;
 
-  goldLogDocs.forEach((d: any) => {
-    const x = d.data();
-    const type = String(x.type || "");
-    const isPurchase = type === "spend_ai" || type === "topup" || type === "topup_member" || type === "buy";
-    if (!isPurchase) return;
-    if (x.uid) buyerUids.add(String(x.uid));
-    totalBuyTransactions++;
-    const amt = Math.max(0, Number(x.amount) || 0);
-    if (type === "spend_ai") totalGoldSpent += amt;
-    const dk = dayKey(toMillis(x.createdAt));
-    if (dk) buyDays.set(dk, (buyDays.get(dk) || 0) + 1);
-  });
+  if (goldLogRows) {
+    for (const row of goldLogRows) {
+      const type = String(row.type || "");
+      const isPurchase = type === "spend_ai" || type === "topup" || type === "topup_member" || type === "buy";
+      if (!isPurchase) continue;
+      if (row.uid) buyerUids.add(String(row.uid));
+      totalBuyTransactions++;
+      const amt = Math.max(0, typeof row.amount === "number" ? row.amount : Number(row.amount) || 0);
+      if (type === "spend_ai") totalGoldSpent += amt;
+      const dk = dayKey(toMillis(row.createdAt));
+      if (dk) buyDays.set(dk, (buyDays.get(dk) || 0) + 1);
+    }
+  }
 
   // ---- Durasi AI: dari ai_access ----
   let aiAccessUsers = 0;
@@ -125,37 +131,39 @@ export async function getBusinessStats(): Promise<BusinessStats> {
   const now = Date.now();
   const activeDays = new Map<string, number>();
 
-  aiDocs.forEach((d: any) => {
-    const x = d.data();
-    aiAccessUsers++;
-    totalRemainingMinutes += Math.max(0, Number(x.remainingMinutes) || 0);
-    totalTimerMinutesPurchased += Math.max(0, Number(x.totalMinutesPurchased) || 0);
+  if (aiAccessRows) {
+    aiAccessUsers = aiAccessRows.length;
+    for (const row of aiAccessRows) {
+      totalRemainingMinutes += Math.max(0, typeof row.remainingMinutes === "number" ? row.remainingMinutes : Number(row.remainingMinutes) || 0);
+      totalTimerMinutesPurchased += Math.max(0, typeof row.totalMinutesPurchased === "number" ? row.totalMinutesPurchased : Number(row.totalMinutesPurchased) || 0);
 
-    const startedMs = toMillis(x.timerStartedAt);
-    const expiresMs = toMillis(x.timerExpiresAt);
+      const startedMs = toMillis(row.timerStartedAt);
+      const expiresMs = toMillis(row.timerExpiresAt);
 
-    if (startedMs && expiresMs && startedMs <= now && now < expiresMs) {
-      activeTimersNow++;
-      const dk = dayKey(startedMs);
-      if (dk) activeDays.set(dk, (activeDays.get(dk) || 0) + 1);
+      if (startedMs && expiresMs && startedMs <= now && now < expiresMs) {
+        activeTimersNow++;
+        const dk = dayKey(startedMs);
+        if (dk) activeDays.set(dk, (activeDays.get(dk) || 0) + 1);
+      }
+      const lastBuyMs = toMillis(row.lastBuyAt);
+      if (lastBuyMs) {
+        const dk = dayKey(lastBuyMs);
+        if (dk) activeDays.set(dk, (activeDays.get(dk) || 0) + 1);
+      }
     }
-    const lastBuyMs = toMillis(x.lastBuyAt);
-    if (lastBuyMs) {
-      const dk = dayKey(lastBuyMs);
-      if (dk) activeDays.set(dk, (activeDays.get(dk) || 0) + 1);
-    }
-  });
+  }
 
   const percentTopup = totalUsers > 0 ? +((buyerUids.size / totalUsers) * 100).toFixed(2) : 0;
   const avgMinutesPerUser = aiAccessUsers > 0 ? +(totalTimerMinutesPurchased / aiAccessUsers).toFixed(1) : 0;
 
   // ---- Topik (dipakai buat apa) ----
   const topicMap = new Map<string, number>();
-  chatDocs.forEach((d: any) => {
-    const x = d.data();
-    const cat = classifyTopic(x.message || x.question || "");
-    topicMap.set(cat, (topicMap.get(cat) || 0) + 1);
-  });
+  if (aiChatLogRows) {
+    for (const row of aiChatLogRows) {
+      const cat = classifyTopic(row.message || row.response);
+      topicMap.set(cat, (topicMap.get(cat) || 0) + 1);
+    }
+  }
   const topics = Array.from(topicMap.entries())
     .map(([topic, count]) => ({ topic, label: TOPIC_LABEL[topic] || topic, count }))
     .sort((a, b) => b.count - a.count);
