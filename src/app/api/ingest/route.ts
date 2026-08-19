@@ -4,13 +4,14 @@ import { data } from "@/lib/data";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const ALLOWED_ORIGINS = (
-  process.env.INGEST_ORIGINS ||
-  "https://babftss.vercel.app,https://babftlearning.dpdns.org,https://babft-project.vercel.app,https://babft-learning-project.zone.id,https://babft-learning.ryzn.pro,https://babft-learning.net,https://babft-learning.com,https://www.babft-learning.net,https://www.babft-learning.com,https://babft.learning.project.thedev.me"
-)
+const ALLOWED_ORIGINS = (process.env.INGEST_ORIGINS || "")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
+if (!ALLOWED_ORIGINS.length && typeof window === "undefined") {
+  console.warn("[ingest] INGEST_ORIGINS env belum diset — semua request bakal ditolak.");
+}
 
 const MAX_BODY_BYTES = 32 * 1024;
 const RATE_WINDOW_MS = 60_000;
@@ -25,12 +26,13 @@ function originAllowed(origin: string | null): boolean {
 
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin");
-  const allow = origin && originAllowed(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allow = origin && originAllowed(origin) ? origin : "";
   return {
-    "Access-Control-Allow-Origin": allow || "*",
+    "Access-Control-Allow-Origin": allow,
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Max-Age": "86400",
+    "Vary": "Origin",
   };
 }
 
