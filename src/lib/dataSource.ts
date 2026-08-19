@@ -7,7 +7,7 @@ export type AdminLogsResult = { logs: AdminLogin[]; admins: Array<{ email: strin
 export type AnalyticsResult = { events: Array<Record<string, unknown>>; summary: { total: number; errors: number; failedLogins: number; heartbeats: number; lastMin: number; last10min: number; uniqueDevices: number }; suspicious: Array<{ id: string; level: string; title: string; detail: string }> };
 
 export interface DataSource {
-  readonly name: "firestore" | "convex";
+  readonly name: "firestore" | "convex" | "turso";
   getUsers(): Promise<UserRecord[]>;
   getUserHistory(uid: string): Promise<HistoryRow[]>;
   deleteUser(id: string): Promise<{ ok: boolean; id: string }>;

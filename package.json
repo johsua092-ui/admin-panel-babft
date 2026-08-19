@@ -13,6 +13,7 @@
     "export": "tsx scripts/export-to-convex.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.17.4",
     "convex": "^1.44.0",
     "firebase": "^10.14.1",
     "firebase-admin": "^12.6.0",

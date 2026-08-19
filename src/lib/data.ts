@@ -1,12 +1,17 @@
 import { firestoreDataSource } from "@/lib/firestoreDataSource";
 import { convexDataSource } from "@/lib/convexDataSource";
+import { convexMutation } from "@/lib/convexClient";
+import { tursoDataSource, tursoHelpers } from "@/lib/tursoDataSource";
 import type { DataSource } from "@/lib/dataSource";
 import { getCached, setCached } from "@/lib/apiCache";
 
-type Backend = "FIREBASE" | "CONVEX";
+type Backend = "FIREBASE" | "CONVEX" | "TURSO";
 
 function primaryBackend(): Backend {
-  return (process.env.DATA_BACKEND || "FIREBASE").toUpperCase() === "CONVEX" ? "CONVEX" : "FIREBASE";
+  const v = (process.env.DATA_BACKEND || "TURSO").toUpperCase();
+  if (v === "CONVEX") return "CONVEX";
+  if (v === "FIREBASE") return "FIREBASE";
+  return "TURSO";
 }
 
 function mirrorEnabled(): boolean {
@@ -14,11 +19,16 @@ function mirrorEnabled(): boolean {
 }
 
 export function primarySource(): DataSource {
-  return primaryBackend() === "CONVEX" ? convexDataSource : firestoreDataSource;
+  const b = primaryBackend();
+  if (b === "CONVEX") return convexDataSource;
+  if (b === "FIREBASE") return firestoreDataSource;
+  return tursoDataSource;
 }
 
 function fallbackSource(p: DataSource): DataSource {
-  return p.name === "convex" ? firestoreDataSource : convexDataSource;
+  if (p.name === "convex") return tursoDataSource;
+  if (p.name === "firestore") return tursoDataSource;
+  return firestoreDataSource;
 }
 
 async function readWithFailover<T>(cacheKey: string, ttlMs: number, reader: (ds: DataSource) => Promise<T>): Promise<T> {
@@ -55,4 +65,20 @@ export const data = {
   logAdminLogin: (i: { uid: string; email: string; role: string }) => writeWithMirror((ds) => ds.logAdminLogin(i)),
   upsertUser: (id: string, p: Record<string, unknown>) => writeWithMirror((ds) => ds.upsertUser(id, p)),
   setBan: (id: string, banned: boolean, reason?: string | null) => writeWithMirror((ds) => ds.setBan(id, banned, reason ?? null)),
+  addHistory: (uid: string, timestamp: number | null, payload: Record<string, unknown>) => {
+    const primary = primarySource();
+    if (primary.name === "turso") return tursoHelpers.addHistory(uid, timestamp, payload);
+    if (primary.name === "convex") {
+      return convexMutation("users:addHistory", { uid, timestamp, data: payload }).then(() => ({ ok: true }));
+    }
+    return Promise.resolve({ ok: true });
+  },
+  upsertAnalytics: (eventId: string, timestamp: number, kind: string | undefined, deviceId: string | undefined, payload: Record<string, unknown>) => {
+    const primary = primarySource();
+    if (primary.name === "turso") return tursoHelpers.upsertAnalytics(eventId, timestamp, kind, deviceId, payload);
+    if (primary.name === "convex") {
+      return convexMutation("analytics:upsertAnalyticsEvent", { eventId, timestamp, kind, deviceId, data: payload }).then(() => ({ ok: true }));
+    }
+    return Promise.resolve({ ok: true });
+  },
 };
