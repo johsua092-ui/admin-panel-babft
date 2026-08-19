@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { convexMutation } from "@/lib/convexClient";
+import { getAdminDb } from "@/lib/adminFirestore";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -74,6 +75,60 @@ async function safeConvex(fn: () => Promise<unknown>): Promise<{ ok: boolean; er
     const msg = e instanceof Error ? e.message : String(e);
     return { ok: false, error: msg };
   }
+}
+
+async function safeFirestore(fn: () => Promise<unknown>): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await fn();
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("[ingest] firestore write failed:", msg);
+    return { ok: false, error: msg };
+  }
+}
+
+async function dualWriteUser(id: string, user: Record<string, unknown>): Promise<{ ok: boolean; error?: string; backends?: { convex: boolean; firestore: boolean } }> {
+  const convexPromise = safeConvex(() => convexMutation("users:upsertUser", { id, data: user }));
+  const fsPromise = safeFirestore(async () => {
+    const db = getAdminDb();
+    const coll = process.env.NEXT_PUBLIC_USERS_COLLECTION || "users";
+    await db.collection(coll).doc(id).set({ ...user, id }, { merge: true });
+  });
+  const [convexRes, fsRes] = await Promise.all([convexPromise, fsPromise]);
+  return {
+    ok: convexRes.ok || fsRes.ok,
+    error: (!convexRes.ok && !fsRes.ok) ? `${convexRes.error} | ${fsRes.error}` : undefined,
+    backends: { convex: convexRes.ok, firestore: fsRes.ok },
+  };
+}
+
+async function dualWriteHistory(uid: string, timestamp: number | null, data: Record<string, unknown>): Promise<{ ok: boolean; backends?: { convex: boolean; firestore: boolean } }> {
+  const convexPromise = safeConvex(() => convexMutation("users:addHistory", { uid, timestamp, data }));
+  const fsPromise = safeFirestore(async () => {
+    const db = getAdminDb();
+    const coll = process.env.NEXT_PUBLIC_USERS_COLLECTION || "users";
+    await db.collection(coll).doc(uid).collection("history").add({ timestamp, data });
+  });
+  const [convexRes, fsRes] = await Promise.all([convexPromise, fsPromise]);
+  return {
+    ok: convexRes.ok || fsRes.ok,
+    backends: { convex: convexRes.ok, firestore: fsRes.ok },
+  };
+}
+
+async function dualWriteAnalytics(eventId: string, timestamp: number, kind: string | undefined, deviceId: string | undefined, data: Record<string, unknown>): Promise<{ ok: boolean; backends?: { convex: boolean; firestore: boolean } }> {
+  const convexPromise = safeConvex(() => convexMutation("analytics:upsertAnalyticsEvent", { eventId, timestamp, kind, deviceId, data }));
+  const fsPromise = safeFirestore(async () => {
+    const db = getAdminDb();
+    const coll = process.env.NEXT_PUBLIC_ANALYTICS_COLLECTION || "analytics";
+    await db.collection(coll).doc(eventId).set({ timestamp, kind, deviceId, data, eventId }, { merge: true });
+  });
+  const [convexRes, fsRes] = await Promise.all([convexPromise, fsPromise]);
+  return {
+    ok: convexRes.ok || fsRes.ok,
+    backends: { convex: convexRes.ok, firestore: fsRes.ok },
+  };
 }
 
 function normalizeUser(p: Record<string, unknown>): Record<string, unknown> {
@@ -165,14 +220,15 @@ export async function POST(req: Request) {
       if (!key) return NextResponse.json({ ok: false, error: "missing key" }, { status: 400, headers });
       const user = normalizeUser((b.user ?? {}) as Record<string, unknown>);
       user.id = key;
-      const r = await safeConvex(() => convexMutation("users:upsertUser", { id: key, data: user }));
+      const r = await dualWriteUser(key, user);
       return NextResponse.json(r, { headers });
     }
 
     if (type === "history") {
       const uid = cleanStr(b.uid) || "";
       if (!uid) return NextResponse.json({ ok: false, error: "missing uid" }, { status: 400, headers });
-      const r = await safeConvex(() => convexMutation("users:addHistory", { uid, timestamp: num(b.timestamp) ?? Date.now(), data: (b.data ?? {}) as Record<string, unknown> }));
+      const ts = num(b.timestamp) ?? Date.now();
+      const r = await dualWriteHistory(uid, ts, (b.data ?? {}) as Record<string, unknown>);
       return NextResponse.json(r, { headers });
     }
 
@@ -181,14 +237,15 @@ export async function POST(req: Request) {
       const deviceId = cleanStr(b.deviceId) || "";
       if (!id && !deviceId) return NextResponse.json({ ok: false, error: "missing id" }, { status: 400, headers });
       const ts = num(b.timestamp) ?? Date.now();
-      const r = await safeConvex(() => convexMutation("users:upsertUser", { id: id || deviceId, data: { online: true, lastOnlineAt: ts, timezone: null } }));
+      const r = await dualWriteUser(id || deviceId, { online: true, lastOnlineAt: ts, timezone: null });
       return NextResponse.json(r, { headers });
     }
 
     if (type === "analytics") {
       const eventId = cleanStr(b.eventId) || "";
       if (!eventId) return NextResponse.json({ ok: false, error: "missing eventId" }, { status: 400, headers });
-      const r = await safeConvex(() => convexMutation("analytics:upsertAnalyticsEvent", { eventId, timestamp: num(b.timestamp) ?? Date.now(), kind: cleanStr(b.kind, 50) ?? undefined, deviceId: cleanStr(b.deviceId) ?? undefined, data: (b.data ?? {}) as Record<string, unknown> }));
+      const ts = num(b.timestamp) ?? Date.now();
+      const r = await dualWriteAnalytics(eventId, ts, cleanStr(b.kind, 50) ?? undefined, cleanStr(b.deviceId) ?? undefined, (b.data ?? {}) as Record<string, unknown>);
       return NextResponse.json(r, { headers });
     }
 

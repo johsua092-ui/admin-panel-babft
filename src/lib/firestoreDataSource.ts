@@ -6,7 +6,21 @@ const ANALYTICS = () => process.env.NEXT_PUBLIC_ANALYTICS_COLLECTION || "analyti
 
 export const firestoreDataSource: DataSource = {
   name: "firestore",
-  async getUsers() { const db = getAdminDb(); const s = await db.collection(USERS()).orderBy("lastLoginAt", "desc").limit(500).get(); return s.docs.map((d) => ({ id: d.id, ...(d.data() as object) })) as any; },
+  async getUsers() {
+    const db = getAdminDb();
+    const snap = await db.collection(USERS()).limit(500).get();
+    const all = snap.docs.map((d) => {
+      const data = d.data() as Record<string, unknown>;
+      return { id: d.id, ...data };
+    });
+    const alive = all.filter((u: Record<string, unknown>) => u.deleted !== true);
+    alive.sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
+      const aT = typeof a.lastLoginAt === "number" ? a.lastLoginAt : 0;
+      const bT = typeof b.lastLoginAt === "number" ? b.lastLoginAt : 0;
+      return (bT as number) - (aT as number);
+    });
+    return alive as any;
+  },
   async getUserHistory(uid) { const db = getAdminDb(); const s = await db.collection(USERS()).doc(uid).collection("history").orderBy("timestamp", "desc").limit(200).get(); return s.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) })); },
   async deleteUser(id) { const db = getAdminDb(); await db.collection(USERS()).doc(id).delete(); return { ok: true, id }; },
   async logAdminLogin({ uid, email, role }) { const db = getAdminDb(); const now = Date.now(); const id = `${now.toString(36)}_${uid.slice(0, 8)}`; await db.collection("admin_logins").doc(id).set({ uid, email, role, timestamp: now }); return { ok: true }; },
