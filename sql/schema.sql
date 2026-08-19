@@ -63,7 +63,8 @@ CREATE TABLE IF NOT EXISTS users (
   deleted            INTEGER DEFAULT 0,
   deletedAt          REAL,
   createdAt          REAL,
-  updatedAt          REAL
+  updatedAt          REAL,
+  gold               REAL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_lastLoginAt  ON users(lastLoginAt);
@@ -76,6 +77,24 @@ CREATE INDEX IF NOT EXISTS idx_users_region       ON users(region);
 CREATE INDEX IF NOT EXISTS idx_users_deleted      ON users(deleted);
 CREATE INDEX IF NOT EXISTS idx_users_banned       ON users(banned);
 CREATE INDEX IF NOT EXISTS idx_users_createdAt    ON users(createdAt);
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- gold_log: history of all gold mutations (grant, deduct, bulk, etc.)
+-- ──────────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS gold_log (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  uid             TEXT NOT NULL,
+  email           TEXT,
+  type            TEXT,
+  amount          REAL,
+  balanceAfter    REAL,
+  createdAt       REAL,
+  meta             TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_gold_log_uid        ON gold_log(uid);
+CREATE INDEX IF NOT EXISTS idx_gold_log_createdAt  ON gold_log(createdAt);
+CREATE INDEX IF NOT EXISTS idx_gold_log_type       ON gold_log(type);
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- history: jejak navigasi/aktivitas per user (subcollection di Firestore lama)
